@@ -10,7 +10,7 @@
 1. **BẢO TOÀN DỮ LIỆU VÀ CÁC DỰ ÁN KHÁC TRÊN VPS (ZERO INTERFERENCE & DATA LOSS)**:
    * VPS này đang chạy cùng các dự án khác (như `linh.goxo.us` tại `/root/ztreel-app` và `t4.goxo.us` tại `/root/ztreel-t4`).
    * **Nghiêm cấm tuyệt đối đụng chạm, sửa đổi, dừng (stop), xóa, hoặc ghi đè bất kỳ file/container/database/port nào của các dự án khác.**
-   * Toàn bộ mã nguồn, container, docker volume, network và cấu hình của `t7` phải được cô lập hoàn toàn (prefix `ztreel7_`, thư mục riêng `/root/ztreel7-app`).
+   * Toàn bộ mã nguồn, container, docker volume, network và cấu hình của `t7` phải được cô lập hoàn toàn (prefix `ztreel7_`, thư mục riêng `/root/ztreel-t7`).
 
 2. **QUẢN LÝ MÃ NGUỒN PHÂN TÁCH HOÀN TOÀN**:
    * **Upstream (Template gốc)**: `https://github.com/trungseodn/t6goxo` $\rightarrow$ **CHỈ ĐỌC (READ-ONLY)**.
@@ -29,7 +29,7 @@ Mỗi khi cần kết nối, kiểm tra hoặc thao tác trên VPS, AI Assistant
 * **IP Server**: `169.58.190.115` (Port: `22`)
 * **Domain trỏ về**: `t7.goxo.us`
 * **User**: `root`
-* **Đường dẫn thư mục dự án trên VPS**: `/root/ztreel7-app`
+* **Đường dẫn thư mục dự án trên VPS**: `/root/ztreel-t7`
 * **File Docker Compose**: `docker-compose.t7.yml`
 
 ### Các câu lệnh SSH chuẩn:
@@ -58,7 +58,7 @@ Mỗi khi cần kết nối, kiểm tra hoặc thao tác trên VPS, AI Assistant
 
 ## 3. THIẾT KẾ CÔ LẬP HỆ THỐNG T7 TRÊN VPS
 
-* **Thư mục dự án**: `/root/ztreel7-app`
+* **Thư mục dự án**: `/root/ztreel-t7`
 * **Docker Compose file**: `docker-compose.t7.yml`
 * **Containers của T7**:
   * `ztreel7_api_prod` (API NestJS - Port host `3007` -> container `3000`)
@@ -82,3 +82,4 @@ Mỗi khi cần kết nối, kiểm tra hoặc thao tác trên VPS, AI Assistant
 ❌ **NGHIÊM CẤM** tự ý xóa file `.env` hoặc `apps/api/.env` trên VPS.  
 ❌ **NGHIÊM CẤM** chỉnh sửa trực tiếp mã nguồn trên VPS bằng tay. Mọi thay đổi phải đi từ Local $\rightarrow$ Commit Git $\rightarrow$ Pull về VPS.  
 ❌ **NGHIÊM CẤM** push code lên repo `trungseodn/t6goxo` (chỉ push lên `trungseodn/t7goxo`).  
+
