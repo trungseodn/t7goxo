@@ -224,10 +224,24 @@ export class ZTTeamFacebookController {
 
   @Post('pages/branding/bulk-apply-descriptions')
   ztteam_bulkApplyDescriptions(
-    @Body() body: { pageIds: string[]; bioTemplate?: string; descTemplate?: string; theme?: string },
+    @Body() body: {
+      pageIds?: string[];
+      bioTemplate?: string;
+      descTemplate?: string;
+      theme?: string;
+      items?: Array<{ pageId: string; bio?: string; description?: string }>;
+    },
     @Request() req: any
   ) {
     return this.facebookService.ztteam_bulkApplyDescriptions(req.user?.sub || 'admin', body);
+  }
+
+  @Post('pages/branding/ai-generate-descriptions')
+  ztteam_aiGenerateDescriptions(
+    @Body() body: { pageIds: string[]; theme?: string; tone?: string },
+    @Request() req: any
+  ) {
+    return this.facebookService.ztteam_aiGenerateDescriptions(req.user?.sub || 'admin', body);
   }
 
   @Patch('pages/:pageId/category')

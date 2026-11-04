@@ -28,3 +28,4 @@ docker exec ztreel7_api_prod npx prisma db push || true
 
 echo "=== STEP 5: VERIFY CONTAINERS ==="
 docker ps --filter "name=ztreel7" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+

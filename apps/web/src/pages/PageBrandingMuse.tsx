@@ -5,7 +5,7 @@ import { useUIStore } from '../stores/uiStore';
 import CustomDropdown from '../components/CustomDropdown';
 import api from '../services/api';
 
-/** Danh sách Preset Chủ Đề được tối ưu hóa cho Muse.ai & Meta Graph API */
+/** Danh sách Preset Chủ Đề được tối ưu hóa cho Muse.ai & Meta Graph API (100% Native English) */
 const THEME_PRESETS = [
   {
     id: 'story_narrative',
@@ -13,8 +13,8 @@ const THEME_PRESETS = [
     desc: 'Tone màu điện ảnh ấm áp, câu chuyện đời sống, nhân văn, tình cảm chạm đến trái tim.',
     avatarPrompt: 'Create a 1:1 square emotive profile picture avatar for a narrative storytelling page named "{PAGE_NAME}". Theme: heartfelt human stories, life drama and emotional narrative, warm golden hour lighting, deep atmospheric textures, elegant artistic symbol, 8k resolution, photorealistic.',
     coverPrompt: 'Create a breathtaking 16:9 cinematic cover banner for "{PAGE_NAME}". Theme: emotional storytelling journey, human life narrative, picturesque cinematic landscape with warm nostalgic lighting, deeply evocative atmosphere, 8k masterpiece.',
-    bioTemplate: '{PAGE_NAME} — Lắng nghe những câu chuyện đời thường, chạm đến từng góc nhỏ cảm xúc.',
-    descTemplate: 'Chào mừng bạn đến với {PAGE_NAME}. Nơi chia sẻ những câu chuyện đời sống nhân văn, sâu sắc và những bài học cuộc đời ý nghĩa mỗi ngày.',
+    bioTemplate: '{PAGE_NAME} — Heartfelt stories, quiet moments, and the human spirit.',
+    descTemplate: 'Welcome to {PAGE_NAME}. We chronicle everyday human journeys, poignant personal reflections, and heartfelt narratives that touch the soul and inspire empathy.',
   },
   {
     id: 'drama_story',
@@ -22,8 +22,8 @@ const THEME_PRESETS = [
     desc: 'Không khí ly kỳ, kịch tính, những tình huống trắc trở, xung đột và bài học cuộc sống.',
     avatarPrompt: 'Create a 1:1 square profile picture avatar for a drama storytelling page named "{PAGE_NAME}". Theme: life drama, emotional tension, unexpected twists, cinematic chiaroscuro lighting, high contrast, subtle iconic symbol, photorealistic, 8k.',
     coverPrompt: 'Create an intense 16:9 cinematic widescreen Facebook cover banner for "{PAGE_NAME}". Theme: compelling life drama, emotional confrontation, moody atmospheric lighting, cinematic storytelling composition, photorealistic, 8k resolution.',
-    bioTemplate: '{PAGE_NAME} — Những góc khuất cuộc đời và tình huống kịch tính đến nghẹt thở.',
-    descTemplate: '{PAGE_NAME} ghi lại những câu chuyện kịch tính, số phận trớ trêu và những nút thắt bất ngờ trong cuộc sống mà bạn không thể bỏ lỡ.',
+    bioTemplate: '{PAGE_NAME} — Unvarnished life drama, intense twists, and raw human truths.',
+    descTemplate: '{PAGE_NAME} captures intense life conflicts, unexpected twists of fate, and compelling real-world dramas exploring the consequences of human decisions.',
   },
   {
     id: 'inspiring_story',
@@ -31,8 +31,8 @@ const THEME_PRESETS = [
     desc: 'Ánh sáng rực rỡ, niềm hy vọng, vượt khó vươn lên và những giá trị sống tích cực.',
     avatarPrompt: 'Create a 1:1 square uplifting profile picture avatar for an inspirational storytelling page named "{PAGE_NAME}". Theme: hope, resilience, overcoming adversity, bright cinematic sunrise lighting, inspiring aesthetic emblem, photorealistic, 8k.',
     coverPrompt: 'Create an awe-inspiring 16:9 panoramic cinematic Facebook cover banner for "{PAGE_NAME}". Theme: journey of hope and triumph, breathtaking horizon, golden morning glow, cinematic storytelling, 8k resolution.',
-    bioTemplate: '{PAGE_NAME} — Vượt qua nghịch cảnh, lan tỏa niềm tin và năng lượng tích cực.',
-    descTemplate: '{PAGE_NAME} là trạm dừng tiếp thêm động lực cho bạn. Nơi hội tụ những hành trình vượt khó, câu chuyện vươn lên và niềm hy vọng bất tận.',
+    bioTemplate: '{PAGE_NAME} — True tales of courage, resilience, and triumph against all odds.',
+    descTemplate: '{PAGE_NAME} is your daily source of hope and motivation. Discover extraordinary journeys of ordinary people rising above adversity and changing their destiny.',
   },
   {
     id: 'history_mystery',
@@ -40,8 +40,8 @@ const THEME_PRESETS = [
     desc: 'Tư liệu cổ kính, bóng tối điện ảnh, chi tiết huyền bí và không gian lưu trữ tài liệu.',
     avatarPrompt: 'Create a 1:1 square iconic profile picture avatar for a storytelling page named "{PAGE_NAME}". Theme: historical mysteries, lost archives, and forgotten secrets. Cinematic dramatic lighting, rich atmospheric textures, deep shadows, 8k resolution, minimalist emblem style, photorealistic.',
     coverPrompt: 'Create a breathtaking cinematic 16:9 widescreen Facebook cover banner for "{PAGE_NAME}". Theme: ancient historical archive, mysterious documents, dramatic storytelling mood, rich vintage textures, volumetric lighting, photorealistic masterpiece, 8k.',
-    bioTemplate: '{PAGE_NAME} — Giải mã bí ẩn lịch sử và những di sản bị lãng quên của nhân loại.',
-    descTemplate: 'Khám phá quá khứ cùng {PAGE_NAME}. Hành trình tìm về những sự kiện bí ẩn, cổ vật huyền bí và các trang sử bi tráng qua từng thời kỳ.',
+    bioTemplate: '{PAGE_NAME} — Unearthing forgotten annals, ancient relics, and lost legends.',
+    descTemplate: 'Step into the past with {PAGE_NAME}. From enigmatic historical events to lost empires and forgotten manuscripts, we bring history\'s greatest mysteries to life.',
   },
   {
     id: 'unsolved_cases',
@@ -49,8 +49,8 @@ const THEME_PRESETS = [
     desc: 'Không khí trinh thám, điều tra bí mật, ánh đèn neon mờ ảo, bóng đêm kịch tính.',
     avatarPrompt: 'Create a 1:1 square profile picture avatar for a mystery investigation page named "{PAGE_NAME}". Theme: unsolved cold cases, detective archives, dark noir aesthetics. High contrast, cinematic chiaroscuro lighting, subtle emblem symbol, photorealistic, 8k.',
     coverPrompt: 'Create an intense 16:9 cinematic widescreen Facebook cover banner for "{PAGE_NAME}". Theme: detective case files, investigative journalism, atmospheric fog, moody dramatic street lighting, photorealistic cinematic storytelling, 8k resolution.',
-    bioTemplate: '{PAGE_NAME} — Hồ sơ vụ án kinh điển, phân tích tâm lý tội phạm và sự thật chưa kể.',
-    descTemplate: 'Kênh tổng hợp hồ sơ các vụ án ly kỳ, quá trình điều tra phá án và những bí ẩn chưa có lời giải trên toàn thế giới cùng {PAGE_NAME}.',
+    bioTemplate: '{PAGE_NAME} — Unsolved cold cases, detective archives, and gripping mysteries.',
+    descTemplate: 'Investigating the world\'s most baffling cold cases, historical investigations, and forensic mysteries. Follow {PAGE_NAME} as we search for truth in the shadows.',
   },
   {
     id: 'modern_editorial',
@@ -58,8 +58,8 @@ const THEME_PRESETS = [
     desc: 'Phong cách hiện đại, tương phản cao, góc nhìn báo chí và khám phá thế giới.',
     avatarPrompt: 'Create a 1:1 modern minimalist profile picture avatar for a storytelling media page named "{PAGE_NAME}". Bold visual identity, clean typography badge, striking contrast, sleek studio lighting, 8k resolution.',
     coverPrompt: 'Create an ultra-modern 16:9 documentary editorial cover banner for "{PAGE_NAME}". Dynamic composition, global perspectives, high-impact cinematic aesthetics, clean visual storytelling, 8k.',
-    bioTemplate: '{PAGE_NAME} — Khám phá góc nhìn hiện đại và nhịp sống đa sắc màu.',
-    descTemplate: '{PAGE_NAME} mang đến các góc nhìn mới mẻ, phân tích xu hướng hiện đại và những chuyển động văn hóa xã hội đặc sắc.',
+    bioTemplate: '{PAGE_NAME} — Modern culture, global phenomenons, and deep-dive perspectives.',
+    descTemplate: '{PAGE_NAME} delivers thought-provoking perspectives on contemporary life, cultural movements, and the stories shaping our rapidly evolving world.',
   },
   {
     id: 'custom',
@@ -78,7 +78,19 @@ export default function PageBrandingMuse() {
   const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
 
   /** State Điều hướng Tabs chính */
-  const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
+  const [activeTab, setActiveTab] = useState<1 | 2 | 3 | 4>(1);
+
+  /** State Quản lý Mô tả & Tiểu sử Tiếng Anh (Tác Vụ Riêng Biệt - Tab 4) */
+  const [bioThemeId, setBioThemeId] = useState<string>('story_narrative');
+  const [bioTone, setBioTone] = useState<string>('Emotive, engaging and authentic');
+  const [editingBio, setEditingBio] = useState<string>(THEME_PRESETS[0].bioTemplate);
+  const [editingDesc, setEditingDesc] = useState<string>(THEME_PRESETS[0].descTemplate);
+  const [pageDescriptionsMap, setPageDescriptionsMap] = useState<Record<string, { bio: string; description: string }>>({});
+  const [isGeneratingBioAI, setIsGeneratingBioAI] = useState<boolean>(false);
+  const [isApplyingBioToFb, setIsApplyingBioToFb] = useState<boolean>(false);
+  const [previewPageForBio, setPreviewPageForBio] = useState<any>(null);
+  const [bioSearchQuery, setBioSearchQuery] = useState<string>('');
+  const [bioFilterStatus, setBioFilterStatus] = useState<'all' | 'missing' | 'has_bio'>('all');
 
   /** Bộ lọc BM & Tìm kiếm */
   const [selectedBm, setSelectedBm] = useState<string>('all');
@@ -203,7 +215,159 @@ export default function PageBrandingMuse() {
     );
   };
 
-  /** Đưa Fanpage đã chọn vào Hàng Đợi Muse */
+  /** Xử lý đổi theme trong Tab 4 (Mô tả tiếng Anh) */
+  const handleSelectBioThemePreset = (themeId: string) => {
+    setBioThemeId(themeId);
+    const preset = THEME_PRESETS.find(t => t.id === themeId);
+    if (preset && themeId !== 'custom') {
+      setEditingBio(preset.bioTemplate || '');
+      setEditingDesc(preset.descTemplate || '');
+    }
+  };
+
+  /** Áp dụng mẫu tiếng Anh vào danh sách Page đã chọn (Local Preview / Staging) */
+  const handleApplyPresetToSelectedPages = () => {
+    const targetPages = selectedPageIds.length > 0
+      ? pages.filter(p => selectedPageIds.includes(p.id))
+      : filteredPages;
+
+    if (targetPages.length === 0) {
+      ztteam_showToast('Vui lòng chọn ít nhất 1 Fanpage để áp dụng mẫu', 'error');
+      return;
+    }
+
+    const newMap = { ...pageDescriptionsMap };
+    targetPages.forEach(p => {
+      const bio = editingBio.replace(/\{PAGE_NAME\}/g, p.name).slice(0, 101);
+      const desc = editingDesc.replace(/\{PAGE_NAME\}/g, p.name);
+      newMap[p.id] = { bio, description: desc };
+    });
+
+    setPageDescriptionsMap(newMap);
+    ztteam_showToast(`Đã áp dụng mẫu Tiếng Anh cho ${targetPages.length} Fanpage!`, 'success');
+  };
+
+  /** Sinh tự động Mô tả & Tiểu sử 100% Native English bằng AI (OpenAI / Gemini) */
+  const handleAIGenerateDescriptions = async () => {
+    const targetPages = selectedPageIds.length > 0
+      ? pages.filter(p => selectedPageIds.includes(p.id))
+      : filteredPages;
+
+    if (targetPages.length === 0) {
+      ztteam_showToast('Vui lòng chọn ít nhất 1 Fanpage để sinh mô tả bằng AI', 'error');
+      return;
+    }
+
+    const confirm = await ztteam_showConfirm(
+      'Xác nhận Sinh Mô Tả Bằng AI (100% English)',
+      `Hệ thống sẽ dùng AI phân tích tên và chủ đề của ${targetPages.length} Fanpage để viết Tiểu sử (Bio < 100 ký tự) và Mô tả chi tiết (Description) chuẩn tiếng Anh bản xứ.\n\n` +
+      `- Chủ đề: ${THEME_PRESETS.find(t => t.id === bioThemeId)?.name || bioThemeId}\n` +
+      `- Tone văn phong: ${bioTone}\n\n` +
+      `Bạn có muốn bắt đầu sinh nội dung ngay?`
+    );
+
+    if (!confirm) return;
+
+    try {
+      setIsGeneratingBioAI(true);
+      const res = await api.post('/facebook/pages/branding/ai-generate-descriptions', {
+        pageIds: targetPages.map(p => p.id),
+        theme: bioThemeId,
+        tone: bioTone,
+      });
+
+      if (res.data?.success) {
+        const newMap = { ...pageDescriptionsMap };
+        if (res.data.items && Array.isArray(res.data.items)) {
+          res.data.items.forEach((it: any) => {
+            newMap[it.id] = { bio: it.bio, description: it.description };
+          });
+        }
+        setPageDescriptionsMap(newMap);
+        ztteam_showToast(res.data.message || `Đã sinh Mô tả bằng AI cho ${targetPages.length} Fanpage thành công!`, 'success');
+        await refreshData();
+      }
+    } catch (err: any) {
+      ztteam_showToast(err.response?.data?.message || err.message || 'Lỗi khi gọi AI sinh mô tả', 'error');
+    } finally {
+      setIsGeneratingBioAI(false);
+    }
+  };
+
+  /** Đồng bộ trực tiếp Mô tả & Tiểu sử lên Meta Graph API */
+  const handleBulkSyncDescriptionsToFacebook = async () => {
+    const targetPages = selectedPageIds.length > 0
+      ? pages.filter(p => selectedPageIds.includes(p.id))
+      : filteredPages;
+
+    if (targetPages.length === 0) {
+      ztteam_showToast('Vui lòng chọn ít nhất 1 Fanpage để cập nhật lên Facebook', 'error');
+      return;
+    }
+
+    const confirm = await ztteam_showConfirm(
+      'Đồng Bộ Lên Facebook Qua Graph API',
+      `Bạn chuẩn bị gửi lệnh cập nhật Mô tả & Tiểu sử trực tiếp qua Meta Graph API cho ${targetPages.length} Fanpage.\n\n` +
+      `- Toàn bộ nội dung cập nhật là 100% tiếng Anh.\n` +
+      `- Giữ nguyên 100% Avatar và Ảnh bìa hiện hữu.\n\n` +
+      `Bạn có muốn tiến hành đồng bộ ngay bây giờ?`
+    );
+
+    if (!confirm) return;
+
+    try {
+      setIsApplyingBioToFb(true);
+
+      const itemsPayload = targetPages.map(p => {
+        const currentData = pageDescriptionsMap[p.id];
+        return {
+          pageId: p.id,
+          bio: currentData?.bio !== undefined ? currentData.bio : (p.brandingBio || editingBio.replace(/\{PAGE_NAME\}/g, p.name).slice(0, 101)),
+          description: currentData?.description !== undefined ? currentData.description : (p.brandingDescription || editingDesc.replace(/\{PAGE_NAME\}/g, p.name)),
+        };
+      });
+
+      const res = await api.post('/facebook/pages/branding/bulk-apply-descriptions', {
+        theme: bioThemeId,
+        items: itemsPayload,
+      });
+
+      if (res.data?.success) {
+        ztteam_showToast(res.data.message || `Đã đồng bộ Mô tả cho ${targetPages.length} Fanpage thành công!`, 'success');
+        await refreshData();
+      }
+    } catch (err: any) {
+      ztteam_showToast(err.response?.data?.message || err.message || 'Lỗi khi cập nhật lên Facebook', 'error');
+    } finally {
+      setIsApplyingBioToFb(false);
+    }
+  };
+
+  /** Đồng bộ 1 Fanpage riêng lẻ */
+  const handleSyncSinglePageBio = async (page: any) => {
+    const currentData = pageDescriptionsMap[page.id];
+    const bioToSend = currentData?.bio !== undefined ? currentData.bio : (page.brandingBio || editingBio.replace(/\{PAGE_NAME\}/g, page.name).slice(0, 101));
+    const descToSend = currentData?.description !== undefined ? currentData.description : (page.brandingDescription || editingDesc.replace(/\{PAGE_NAME\}/g, page.name));
+
+    try {
+      const res = await api.post('/facebook/pages/branding/bulk-apply-descriptions', {
+        items: [{
+          pageId: page.id,
+          bio: bioToSend,
+          description: descToSend,
+        }],
+      });
+
+      if (res.data?.success) {
+        ztteam_showToast(`Đã cập nhật Mô tả cho Page "${page.name}" thành công!`, 'success');
+        await refreshData();
+      }
+    } catch (err: any) {
+      ztteam_showToast(err.response?.data?.message || err.message || 'Lỗi khi cập nhật lên Facebook', 'error');
+    }
+  };
+
+    /** Đưa Fanpage đã chọn vào Hàng Đợi Muse */
   const handleQueueBrandingSubmit = async () => {
     const targetPages = selectedPageIds.length > 0 
       ? pages.filter(p => selectedPageIds.includes(p.id))
@@ -506,6 +670,21 @@ export default function PageBrandingMuse() {
               {queueStatus.queue.totalActiveJobs} Đang chạy
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab(4)}
+          className={`px-5 py-3 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 rounded-t-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeTab === 4
+              ? 'border-emerald-500 text-emerald-400 bg-emerald-500/5 shadow-xs'
+              : 'border-transparent text-fb-text-muted hover:text-fb-text hover:bg-fb-surface-hover/40'
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">edit_note</span>
+          <span>4. Mô Tả & Tiểu Sử (100% English)</span>
+          <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
+            Native AI
+          </span>
         </button>
       </div>
 
@@ -1361,6 +1540,516 @@ export default function PageBrandingMuse() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/** =========================================================================
+       * TAB 4: QUẢN LÝ MÔ TẢ & TIỂU SỬ THEO CHỦ ĐỀ (100% NATIVE ENGLISH)
+       * ========================================================================= */}
+      {activeTab === 4 && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {/** Header Banner Tác Vụ */}
+          <div className="bg-gradient-to-r from-emerald-950/40 via-fb-surface to-teal-950/40 p-5 rounded-2xl border border-emerald-500/30 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="material-symbols-outlined text-lg">edit_note</span>
+                </span>
+                <h3 className="text-base font-bold text-white tracking-wide">
+                  Tác Vụ Riêng Biệt: Quản Lý Mô Tả & Tiểu Sử (100% Native English)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-300">
+                Cập nhật Tiểu sử (Bio $\le$ 100 ký tự) & Giới thiệu (About/Description) chuẩn văn phong tiếng Anh quốc tế qua Meta Graph API trong 3–5 giây. Độc lập hoàn toàn với tiến trình tạo ảnh của Muse.ai.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs text-slate-300 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Đã chọn: <strong className="text-emerald-400">{selectedPageIds.length > 0 ? selectedPageIds.length : filteredPages.length}</strong> Page</span>
+              </div>
+            </div>
+          </div>
+
+          {/** Bố cục chính 2 Cột: Cấu hình Soạn Thảo (Trái) & Danh sách + Live Mockup (Phải) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/** ================== CỘT TRÁI (5 CỘT): CẤU HÌNH & SOẠN THẢO ================== */}
+            <div className="lg:col-span-5 space-y-5">
+              {/** Card 1: Chọn Chủ Đề */}
+              <div className="bg-fb-surface rounded-2xl border border-fb-surface-hover/50 p-4 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-fb-surface-hover/40">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">category</span>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">1. Chủ Đề Kênh (Theme)</h4>
+                  </div>
+                  <span className="text-[11px] text-emerald-400 font-mono">100% English</span>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-slate-300">Chọn Preset Theo Chủ Đề:</label>
+                  <CustomDropdown
+                    value={bioThemeId}
+                    onChange={handleSelectBioThemePreset}
+                    options={THEME_PRESETS.map(t => ({
+                      value: t.id,
+                      label: t.name,
+                    }))}
+                  />
+                  <p className="text-[11px] text-slate-400 pt-1">
+                    {THEME_PRESETS.find(t => t.id === bioThemeId)?.desc}
+                  </p>
+                </div>
+              </div>
+
+              {/** Card 2: Preset Chuẩn Tiếng Anh & Chỉnh Sửa Mẫu */}
+              <div className="bg-fb-surface rounded-2xl border border-fb-surface-hover/50 p-4 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-fb-surface-hover/40">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-cyan-400 text-lg">description</span>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">2. Mẫu Tiếng Anh Chuẩn (Preset)</h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApplyPresetToSelectedPages}
+                    className="px-2.5 py-1 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-xs">playlist_add_check</span>
+                    <span>Áp Dụng Cho Danh Sách</span>
+                  </button>
+                </div>
+
+                {/** Ô nhập Bio Tiếng Anh */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <span>Tiểu Sử / Bio (Ngắn gọn)</span>
+                      <span className="text-[10px] text-slate-400">(Hiển thị dưới tên Page)</span>
+                    </label>
+                    <span className={`text-[11px] font-mono px-2 py-0.5 rounded border ${
+                      editingBio.length > 101
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    }`}>
+                      {editingBio.length}/101 ký tự
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={editingBio}
+                    onChange={(e) => setEditingBio(e.target.value)}
+                    placeholder="e.g. {PAGE_NAME} — Heartfelt stories, quiet moments, and the human spirit."
+                    className="w-full bg-black/40 border border-fb-surface-hover/80 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/80 transition-colors font-sans"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                    <span>Hỗ trợ biến: <code className="text-emerald-400">{'{PAGE_NAME}'}</code></span>
+                    {editingBio.length > 101 && (
+                      <span className="text-rose-400 font-bold">Cảnh báo: Facebook chỉ cho phép tối đa 101 ký tự cho Bio</span>
+                    )}
+                  </div>
+                </div>
+
+                {/** Ô nhập Mô tả Chi tiết Tiếng Anh */}
+                <div className="space-y-1.5 pt-2 border-t border-fb-surface-hover/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <span>Mô Tả Chi Tiết / About</span>
+                      <span className="text-[10px] text-slate-400">(Mục Giới thiệu Fanpage)</span>
+                    </label>
+                    <span className="text-[11px] font-mono text-slate-400">
+                      {editingDesc.length} ký tự
+                    </span>
+                  </div>
+                  <textarea
+                    rows={4}
+                    value={editingDesc}
+                    onChange={(e) => setEditingDesc(e.target.value)}
+                    placeholder="e.g. Welcome to {PAGE_NAME}. We chronicle everyday human journeys..."
+                    className="w-full bg-black/40 border border-fb-surface-hover/80 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/80 transition-colors font-sans leading-relaxed"
+                  />
+                  <div className="text-[10px] text-slate-400">
+                    Mô tả súc tích từ 150–250 ký tự sẽ tối ưu hóa khả năng hiển thị trên Facebook Mobile và SEO Meta Search.
+                  </div>
+                </div>
+              </div>
+
+              {/** Card 3: AI Smart Generator (100% Native English) */}
+              <div className="bg-fb-surface rounded-2xl border border-teal-500/30 bg-teal-500/5 p-4 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-teal-500/20">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-teal-400 text-lg">auto_awesome</span>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">3. Sinh Độc Bản Bằng AI (Smart Writer)</h4>
+                  </div>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-teal-500/20 text-teal-300 font-mono border border-teal-500/30">
+                    OpenAI / Gemini
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Tone Văn Phong Tiếng Anh:</label>
+                    <select
+                      value={bioTone}
+                      onChange={(e) => setBioTone(e.target.value)}
+                      className="w-full bg-black/40 border border-fb-surface-hover/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500"
+                    >
+                      <option value="Emotive, heartfelt and authentic">Warm & Emotive (Cảm xúc & Nhân văn)</option>
+                      <option value="Dramatic, suspenseful and intense">Dramatic & Intense (Kịch tính & Ly kỳ)</option>
+                      <option value="Inspiring, uplifting and motivational">Inspiring & Resilient (Truyền cảm hứng & Vươn lên)</option>
+                      <option value="Historical, enigmatic and archival">Historical & Relic (Cổ tích & Huyền sử)</option>
+                      <option value="Investigative, noir and mysterious">Investigative Mystery (Trinh thám & Vụ án)</option>
+                      <option value="Modern, journalistic and insightful">Modern Editorial (Hiện đại & Khám phá)</option>
+                    </select>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400">
+                    AI sẽ phân tích từng tên Fanpage và chủ đề để tự động viết Bio độc bản $le$ 100 ký tự và đoạn Description hấp dẫn, không bị trùng lặp.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleAIGenerateDescriptions}
+                    disabled={isGeneratingBioAI || (selectedPageIds.length === 0 && filteredPages.length === 0)}
+                    className="w-full py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:opacity-90 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-teal-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isGeneratingBioAI ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-sm">sync</span>
+                        <span>Đang gọi AI sáng tạo nội dung...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">magic_button</span>
+                        <span>Sinh Bằng AI Cho {selectedPageIds.length > 0 ? selectedPageIds.length : filteredPages.length} Page</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/** Nút Thao Tác Chính: Đẩy Lên Facebook Qua Graph API */}
+              <div className="bg-fb-surface rounded-2xl border border-emerald-500/30 p-4 space-y-3 shadow-lg">
+                <div className="flex items-center gap-2 text-xs text-emerald-400 font-bold">
+                  <span className="material-symbols-outlined text-base">cloud_upload</span>
+                  <span>Đồng bộ Meta Graph API</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBulkSyncDescriptionsToFacebook}
+                  disabled={isApplyingBioToFb || (selectedPageIds.length === 0 && filteredPages.length === 0)}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isApplyingBioToFb ? (
+                    <>
+                      <span className="material-symbols-outlined animate-spin text-base">sync</span>
+                      <span>Đang cập nhật lên Facebook...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">rocket_launch</span>
+                      <span>Đẩy Mô Tả Lên Facebook ({selectedPageIds.length > 0 ? selectedPageIds.length : filteredPages.length} Page)</span>
+                    </>
+                  )}
+                </button>
+                <div className="text-[11px] text-center text-slate-400">
+                  ⚡ Cập nhật đồng loạt các trường <code className="text-slate-300">bio</code>, <code className="text-slate-300">about</code> và <code className="text-slate-300">description</code> tức thì.
+                </div>
+              </div>
+            </div>
+
+            {/** ================== CỘT PHẢI (7 CỘT): LIVE MOCKUP & DANH SÁCH ================== */}
+            <div className="lg:col-span-7 space-y-5">
+              {/** Khung Xem Trước Mockup Facebook Header Trực Quan */}
+              <div className="bg-fb-surface rounded-2xl border border-fb-surface-hover/50 overflow-hidden shadow-lg">
+                <div className="p-3 bg-black/40 border-b border-fb-surface-hover/40 flex items-center justify-between text-xs text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-400 text-sm">visibility</span>
+                    <span className="font-bold text-white">Live Mockup: Giao Diện Fanpage Thực Tế</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {previewPageForBio ? previewPageForBio.name : (filteredPages[0]?.name || 'Preview')}
+                  </span>
+                </div>
+
+                {/** Thẻ Mockup Facebook Profile Header */}
+                {(() => {
+                  const targetPage = previewPageForBio || filteredPages[0] || pages[0];
+                  if (!targetPage) return <div className="p-6 text-center text-xs text-slate-500">Chưa có dữ liệu Fanpage</div>;
+
+                  const customData = pageDescriptionsMap[targetPage.id];
+                  const displayedBio = customData?.bio !== undefined
+                    ? customData.bio
+                    : (targetPage.brandingBio || editingBio.replace(/\{PAGE_NAME\}/g, targetPage.name).slice(0, 101));
+                  const displayedDesc = customData?.description !== undefined
+                    ? customData.description
+                    : (targetPage.brandingDescription || editingDesc.replace(/\{PAGE_NAME\}/g, targetPage.name));
+
+                  return (
+                    <div className="bg-slate-950 p-4 space-y-4">
+                      {/** Cover Banner */}
+                      <div className="relative h-36 sm:h-44 rounded-xl overflow-hidden bg-slate-900 border border-white/5 flex items-center justify-center">
+                        {targetPage.brandingCoverUrl ? (
+                          <img
+                            src={targetPage.brandingCoverUrl}
+                            alt="Cover"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-4 space-y-1">
+                            <span className="material-symbols-outlined text-3xl text-slate-700">panorama</span>
+                            <div className="text-[11px] text-slate-500">Ảnh bìa 16:9 ({targetPage.primarySourceWeb || 't7.goxo.us'})</div>
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-sm text-[10px] text-emerald-400 font-mono border border-emerald-500/30">
+                          {THEME_PRESETS.find(t => t.id === bioThemeId)?.name.split(' ')[1] || 'Theme'}
+                        </div>
+                      </div>
+
+                      {/** Avatar + Header Information */}
+                      <div className="px-2 -mt-12 sm:-mt-14 flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-4 relative z-10">
+                        <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-full border-4 border-slate-950 bg-slate-800 overflow-hidden shrink-0 shadow-xl flex items-center justify-center">
+                          {targetPage.brandingAvatarUrl ? (
+                            <img
+                              src={targetPage.brandingAvatarUrl}
+                              alt="Avatar"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="material-symbols-outlined text-3xl text-slate-500">account_circle</span>
+                          )}
+                        </div>
+
+                        <div className="text-center sm:text-left flex-1 min-w-0 pb-1">
+                          <div className="flex items-center justify-center sm:justify-start gap-1.5">
+                            <h2 className="text-base sm:text-lg font-black text-white truncate">{targetPage.name}</h2>
+                            <span className="material-symbols-outlined text-blue-400 text-sm" title="Verified Page">verified</span>
+                          </div>
+                          <div className="text-xs text-slate-400 flex items-center justify-center sm:justify-start gap-2 mt-0.5">
+                            <span>{targetPage.category || 'Story & Entertainment'}</span>
+                            <span>•</span>
+                            <span className="text-slate-300 font-medium">{(targetPage.followersCount || targetPage.follower_count || 1250).toLocaleString()} followers</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pb-1">
+                          <span className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center gap-1 shadow-sm">
+                            <span className="material-symbols-outlined text-sm">person_add</span>
+                            <span>Follow</span>
+                          </span>
+                          <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-white/10 text-slate-300 font-bold text-xs">
+                            Message
+                          </span>
+                        </div>
+                      </div>
+
+                      {/** BIO & DESCRIPTION CONTAINER TRONG MOCKUP */}
+                      <div className="mt-3 p-3.5 bg-black/40 border border-white/5 rounded-xl space-y-2.5">
+                        {/** Bio */}
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">badge</span>
+                            <span>Page Bio (Dưới 101 ký tự)</span>
+                          </div>
+                          <div className="text-xs text-white italic font-serif mt-1 pl-2 border-l-2 border-emerald-500">
+                            "{displayedBio || 'Chưa thiết lập Bio'}"
+                          </div>
+                        </div>
+
+                        {/** Description / About */}
+                        <div className="pt-2 border-t border-white/5">
+                          <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-xs">info</span>
+                            <span>About / Giới thiệu chi tiết</span>
+                          </div>
+                          <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                            {displayedDesc || 'Chưa thiết lập Mô tả'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/** Bảng Danh Sách Fanpage & Bộ Lọc Nhanh */}
+              <div className="bg-fb-surface rounded-2xl border border-fb-surface-hover/50 p-4 space-y-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-fb-surface-hover/40">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">format_list_bulleted</span>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                      Danh Sách Fanpage ({filteredPages.length})
+                    </h4>
+                  </div>
+
+                  {/** Bộ lọc tìm kiếm & Lọc trạng thái bio */}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    <input
+                      type="text"
+                      value={bioSearchQuery}
+                      onChange={(e) => setBioSearchQuery(e.target.value)}
+                      placeholder="Tìm tên trang / ID..."
+                      className="px-3 py-1.5 bg-black/40 border border-fb-surface-hover rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-36 sm:w-44"
+                    />
+
+                    <select
+                      value={bioFilterStatus}
+                      onChange={(e: any) => setBioFilterStatus(e.target.value)}
+                      className="px-2.5 py-1.5 bg-black/40 border border-fb-surface-hover rounded-xl text-xs text-slate-300 focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="all">Tất cả trang</option>
+                      <option value="missing">Chưa có Bio</option>
+                      <option value="has_bio">Đã có Bio</option>
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleSelectAll}
+                      className="px-2.5 py-1.5 bg-fb-surface-hover hover:bg-fb-surface-hover/80 text-fb-text text-xs font-bold rounded-xl whitespace-nowrap cursor-pointer transition-colors"
+                    >
+                      {filteredPages.every(p => selectedPageIds.includes(p.id)) ? 'Bỏ chọn hết' : 'Chọn tất cả'}
+                    </button>
+                  </div>
+                </div>
+
+                {/** Danh sách từng Fanpage với ô nhập Bio/Desc trực tiếp */}
+                <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
+                  {filteredPages
+                    .filter(p => {
+                      if (bioSearchQuery.trim()) {
+                        const q = bioSearchQuery.toLowerCase();
+                        const matchName = (p.name || '').toLowerCase().includes(q);
+                        const matchId = (p.fb_page_id || p.id || '').includes(q);
+                        if (!matchName && !matchId) return false;
+                      }
+                      if (bioFilterStatus === 'missing') return !p.brandingBio;
+                      if (bioFilterStatus === 'has_bio') return !!p.brandingBio;
+                      return true;
+                    })
+                    .map((page) => {
+                      const isSelected = selectedPageIds.includes(page.id);
+                      const customData = pageDescriptionsMap[page.id];
+                      const currentBio = customData?.bio !== undefined ? customData.bio : (page.brandingBio || '');
+                      const currentDesc = customData?.description !== undefined ? customData.description : (page.brandingDescription || '');
+
+                      return (
+                        <div
+                          key={page.id}
+                          className={`p-3.5 rounded-xl border transition-all space-y-2.5 ${
+                            isSelected
+                              ? 'bg-emerald-500/5 border-emerald-500/40 shadow-xs'
+                              : 'bg-black/20 border-fb-surface-hover/40 hover:border-fb-surface-hover'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleSelectPage(page.id)}
+                                className="h-4 w-4 rounded border-fb-surface-hover text-emerald-600 focus:ring-emerald-500 bg-black/40 cursor-pointer shrink-0"
+                              />
+
+                              <div className="h-8 w-8 rounded-full bg-slate-800 overflow-hidden shrink-0 border border-white/10">
+                                {page.brandingAvatarUrl ? (
+                                  <img src={page.brandingAvatarUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="material-symbols-outlined text-slate-500 text-sm flex items-center justify-center h-full">person</span>
+                                )}
+                              </div>
+
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                                  <span>{page.name}</span>
+                                  {page.brandingBio ? (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300 font-mono">Đã có Bio</span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-500/20 text-amber-300 font-mono">Chưa có Bio</span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  ID: {page.fb_page_id || page.id}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setPreviewPageForBio(page)}
+                                className="px-2 py-1 bg-fb-surface-hover hover:bg-slate-700 text-slate-300 text-[11px] font-medium rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Xem trước trên Mockup"
+                              >
+                                <span className="material-symbols-outlined text-xs">visibility</span>
+                                <span>Mockup</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSyncSinglePageBio(page)}
+                                className="px-2 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Đồng bộ trang này lên Facebook"
+                              >
+                                <span className="material-symbols-outlined text-xs">send</span>
+                                <span>Đẩy Facebook</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          {/** Ô chỉnh sửa Bio & Description nhanh */}
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-1 border-t border-fb-surface-hover/30">
+                            <div className="sm:col-span-5 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Bio (English):</span>
+                                <span className={currentBio.length > 101 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-mono'}>
+                                  {currentBio.length}/101
+                                </span>
+                              </div>
+                              <input
+                                type="text"
+                                value={currentBio}
+                                onChange={(e) => {
+                                  setPageDescriptionsMap({
+                                    ...pageDescriptionsMap,
+                                    [page.id]: {
+                                      bio: e.target.value,
+                                      description: currentDesc,
+                                    }
+                                  });
+                                }}
+                                placeholder="Bio tagline..."
+                                className="w-full px-2.5 py-1.5 bg-black/40 border border-fb-surface-hover/70 rounded-lg text-[11px] text-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+
+                            <div className="sm:col-span-7 space-y-1">
+                              <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Description / About (English):</span>
+                                <span className="font-mono text-slate-500">{currentDesc.length} chars</span>
+                              </div>
+                              <input
+                                type="text"
+                                value={currentDesc}
+                                onChange={(e) => {
+                                  setPageDescriptionsMap({
+                                    ...pageDescriptionsMap,
+                                    [page.id]: {
+                                      bio: currentBio,
+                                      description: e.target.value,
+                                    }
+                                  });
+                                }}
+                                placeholder="Detailed about/description..."
+                                className="w-full px-2.5 py-1.5 bg-black/40 border border-fb-surface-hover/70 rounded-lg text-[11px] text-white focus:outline-none focus:border-emerald-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
             </div>
           </div>
         </div>

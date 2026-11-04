@@ -4028,13 +4028,166 @@ export class ZTTeamFacebookService {
   /**
    * ZTTeam: Cập nhật đồng loạt Mô tả & Tiểu sử (Bio/About) lên Fanpage qua Meta Graph API
    */
-  async ztteam_bulkApplyDescriptions(userId: string, body: {
+  /**
+   * ZTTeam: Mẫu Preset Mô tả & Tiểu sử 100% Tiếng Anh chuẩn Quốc Tế
+   */
+  private readonly THEME_ENGLISH_PRESETS: Record<string, { bio: string; desc: string }> = {
+    story_narrative: {
+      bio: '{PAGE_NAME} — Heartfelt stories, quiet moments, and the human spirit.',
+      desc: 'Welcome to {PAGE_NAME}. We chronicle everyday human journeys, poignant personal reflections, and heartfelt narratives that touch the soul and inspire empathy.',
+    },
+    drama_story: {
+      bio: '{PAGE_NAME} — Unvarnished life drama, intense twists, and raw human truths.',
+      desc: '{PAGE_NAME} captures intense life conflicts, unexpected twists of fate, and compelling real-world dramas exploring the consequences of human decisions.',
+    },
+    inspiring_story: {
+      bio: '{PAGE_NAME} — True tales of courage, resilience, and triumph against all odds.',
+      desc: '{PAGE_NAME} is your daily source of hope and motivation. Discover extraordinary journeys of ordinary people rising above adversity and changing their destiny.',
+    },
+    history_mystery: {
+      bio: '{PAGE_NAME} — Unearthing forgotten annals, ancient relics, and lost legends.',
+      desc: 'Step into the past with {PAGE_NAME}. From enigmatic historical events to lost empires and forgotten manuscripts, we bring history\x27s greatest mysteries to life.',
+    },
+    unsolved_cases: {
+      bio: '{PAGE_NAME} — Unsolved cold cases, detective archives, and gripping mysteries.',
+      desc: 'Investigating the world\x27s most baffling cold cases, historical investigations, and forensic mysteries. Follow {PAGE_NAME} as we search for truth in the shadows.',
+    },
+    modern_editorial: {
+      bio: '{PAGE_NAME} — Modern culture, global phenomenons, and deep-dive perspectives.',
+      desc: '{PAGE_NAME} delivers thought-provoking perspectives on contemporary life, cultural movements, and the stories shaping our rapidly evolving world.',
+    },
+  };
+
+  /**
+   * ZTTeam: Tác vụ sinh tự động Mô tả & Tiểu sử 100% Tiếng Anh độc bản bằng AI (OpenAI / Gemini)
+   */
+  async ztteam_aiGenerateDescriptions(userId: string, body: {
     pageIds: string[];
+    theme?: string;
+    tone?: string;
+  }) {
+    const { pageIds, theme = 'story_narrative', tone = 'Engaging, emotive and authentic' } = body;
+    if (!pageIds || pageIds.length === 0) {
+      throw new BadRequestException('Vui lòng chọn ít nhất 1 Fanpage để sinh mô tả AI');
+    }
+
+    const pages = await this.prisma.ztteam_pages.findMany({
+      where: { id: { in: pageIds }, is_active: true }
+    });
+
+    const fallbackPreset = this.THEME_ENGLISH_PRESETS[theme] || this.THEME_ENGLISH_PRESETS['story_narrative'];
+    const results: Array<{ id: string; name: string; fb_page_id: string; bio: string; description: string }> = [];
+
+    // Lấy API key
+    const openAiRec = await this.prisma.ztteam_settings.findUnique({ where: { key: 'openai_api_key' } });
+    const geminiRec = await this.prisma.ztteam_settings.findUnique({ where: { key: 'gemini_api_key' } });
+    const openAiKey = (openAiRec?.value || process.env.OPENAI_API_KEY || '').trim();
+    const geminiKey = (geminiRec?.value || process.env.GEMINI_API_KEY || '').trim();
+
+    for (const page of pages) {
+      let generatedBio = '';
+      let generatedDesc = '';
+
+      if (openAiKey || geminiKey) {
+        const prompt = `You are an expert social media branding copywriter for viral Facebook Pages.
+Generate a compelling, 100% fluent native English Bio and Description for:
+- Page Name: "${page.name}"
+- Niche/Theme: "${theme}"
+- Category: "${page.category || 'Story'}"
+- Tone: "${tone}"
+
+CRITICAL CONSTRAINTS:
+1. "bio": A powerful tagline strictly 50 to 95 characters long (MUST NOT exceed 100 characters due to Facebook limit). No hashtags.
+2. "description": 2 to 3 engaging, polished sentences (150 to 240 characters) explaining what the page publishes and inviting people to follow and watch.
+3. Language: 100% natural, idiomatic English.
+
+Output JSON ONLY in this format:
+{"bio": "...", "description": "..."}`;
+
+        try {
+          if (openAiKey) {
+            const OpenAI = require('openai').default;
+            const openai = new OpenAI({ apiKey: openAiKey });
+            const response = await openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.75,
+              max_tokens: 350,
+              response_format: { type: 'json_object' }
+            });
+            const content = response.choices[0]?.message?.content?.trim() || '{}';
+            const parsed = JSON.parse(content);
+            if (parsed.bio) generatedBio = parsed.bio.trim().slice(0, 101);
+            if (parsed.description) generatedDesc = parsed.description.trim().slice(0, 500);
+          } else if (geminiKey) {
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(geminiKey);
+            const model = genAI.getGenerativeModel({
+              model: 'gemini-2.5-flash-lite',
+              generationConfig: { responseMimeType: 'application/json' }
+            });
+            const res = await model.generateContent(prompt);
+            const parsed = JSON.parse(res.response.text());
+            if (parsed.bio) generatedBio = parsed.bio.trim().slice(0, 101);
+            if (parsed.description) generatedDesc = parsed.description.trim().slice(0, 500);
+          }
+        } catch (aiErr: any) {
+          this.logger.warn(`Lỗi AI sinh mô tả cho page ${page.name}: ${aiErr.message}. Dùng mẫu tiếng Anh chuẩn.`);
+        }
+      }
+
+      // Fallback nếu AI không khả dụng
+      if (!generatedBio) {
+        generatedBio = fallbackPreset.bio.replace(/\{PAGE_NAME\}/g, page.name).slice(0, 101);
+      }
+      if (!generatedDesc) {
+        generatedDesc = fallbackPreset.desc.replace(/\{PAGE_NAME\}/g, page.name);
+      }
+
+      // Cập nhật DB
+      await this.prisma.ztteam_pages.update({
+        where: { id: page.id },
+        data: {
+          branding_bio: generatedBio,
+          branding_description: generatedDesc,
+          branding_theme: theme,
+        } as any
+      });
+
+      results.push({
+        id: page.id,
+        name: page.name,
+        fb_page_id: page.fb_page_id,
+        bio: generatedBio,
+        description: generatedDesc
+      });
+    }
+
+    return {
+      success: true,
+      total: pages.length,
+      items: results,
+      message: `Đã sinh Mô tả & Tiểu sử Tiếng Anh cho ${pages.length} Fanpage bằng AI thành công!`
+    };
+  }
+
+  /**
+   * ZTTeam: Cập nhật Mô Tả & Tiểu Sử Fanpage lên Meta Graph API
+   */
+  async ztteam_bulkApplyDescriptions(userId: string, body: {
+    pageIds?: string[];
     bioTemplate?: string;
     descTemplate?: string;
     theme?: string;
+    items?: Array<{ pageId: string; bio?: string; description?: string }>;
   }) {
-    const { pageIds, bioTemplate, descTemplate, theme = 'story_narrative' } = body;
+    const { bioTemplate, descTemplate, theme = 'story_narrative', items } = body;
+    let pageIds = body.pageIds || [];
+
+    if (items && items.length > 0) {
+      pageIds = items.map(it => it.pageId);
+    }
+
     if (!pageIds || pageIds.length === 0) {
       throw new BadRequestException('Vui lòng chọn ít nhất 1 Fanpage để cập nhật mô tả');
     }
@@ -4046,20 +4199,34 @@ export class ZTTeamFacebookService {
       }
     });
 
+    const itemMap = new Map((items || []).map(it => [it.pageId, it]));
+
     let successCount = 0;
     let failCount = 0;
     const errors: string[] = [];
 
     for (const page of pages) {
-      const pageBio = (bioTemplate || (page as any).branding_bio || '')
+      const pageItem = itemMap.get(page.id);
+      let pageBio = (pageItem?.bio !== undefined
+        ? pageItem.bio
+        : (bioTemplate || (page as any).branding_bio || '')
+      )
         .replace(/\{PAGE_NAME\}/g, page.name)
         .replace(/\{CATEGORY\}/g, page.category || 'Story')
-        .replace(/\{THEME\}/g, theme);
+        .replace(/\{THEME\}/g, theme)
+        .trim();
 
-      const pageDesc = (descTemplate || (page as any).branding_description || '')
+      let pageDesc = (pageItem?.description !== undefined
+        ? pageItem.description
+        : (descTemplate || (page as any).branding_description || '')
+      )
         .replace(/\{PAGE_NAME\}/g, page.name)
         .replace(/\{CATEGORY\}/g, page.category || 'Story')
-        .replace(/\{THEME\}/g, theme);
+        .replace(/\{THEME\}/g, theme)
+        .trim();
+
+      // Giới hạn an toàn của Facebook Bio
+      if (pageBio.length > 101) pageBio = pageBio.slice(0, 101);
 
       // Lưu cơ sở dữ liệu
       await this.prisma.ztteam_pages.update({
