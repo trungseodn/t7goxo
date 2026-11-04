@@ -12,3 +12,4 @@ echo   Vui long dang nhap Muse.ai tren cua so Chrome vua mo.
 echo   Sau khi dang nhap xong, chay file start_muse_worker.bat!
 echo ========================================================
 pause
+
