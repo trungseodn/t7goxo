@@ -1,6 +1,6 @@
 /**
  * ZTTeam: Dịch vụ nền tạo Ảnh Bìa & Avatar Facebook tự động qua Muse.ai
- * Tác giả: ZTTeam (t6.goxo.us)
+ * Tác giả: ZTTeam (t7.goxo.us)
  * Cổng Chrome Debugger chuyên biệt: 9245 (hoặc chỉ định qua --chrome-port)
  * Profile Chrome chuyên biệt: %USERPROFILE%\chrome-muse-branding-profile
  * Tránh hoàn toàn xung đột cổng với các worker Reel/Video khác.
@@ -15,7 +15,7 @@ function smartRequire(name) {
   } catch (e) {
     const candidates = [
       path.resolve(__dirname, '../node_modules', name),
-      path.resolve('D:/projects/t6.goxo.us/node_modules', name),
+      path.resolve('D:/projects/t7.goxo.us/node_modules', name),
       path.resolve('D:/projects/t4.goxo.us/node_modules', name),
       path.resolve('D:/projects/t4-reel/node_modules', name),
       path.resolve('D:/projects/trung-reel/node_modules', name),
@@ -49,7 +49,7 @@ const FormData = smartRequire('form-data');
 const args = process.argv.slice(2);
 
 const targetArg = args.find(a => a.startsWith('--target='));
-const TARGET_URL = (targetArg ? targetArg.split('=')[1] : (process.env.TARGET_URL || 'https://t6.goxo.us')).replace(/\/$/, '');
+const TARGET_URL = (targetArg ? targetArg.split('=')[1] : (process.env.TARGET_URL || 'https://t7.goxo.us')).replace(/\/$/, '');
 
 const chromePortArg = args.find(a => a.startsWith('--chrome-port='));
 const CHROME_PORT = chromePortArg ? chromePortArg.split('=')[1] : (process.env.CHROME_DEBUG_PORT || '9245');
@@ -506,3 +506,4 @@ ztteam_sendHeartbeat();
 
 setInterval(ztteam_brandingWorkerLoop, POLL_INTERVAL_MS);
 ztteam_brandingWorkerLoop();
+

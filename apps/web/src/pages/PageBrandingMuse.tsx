@@ -707,7 +707,7 @@ export default function PageBrandingMuse() {
                           <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
                             <span className="font-mono">ID: {page.fb_page_id || page.id}</span>
                             <span>•</span>
-                            <span className="text-emerald-400/90">{page.primarySourceWeb || 't6.goxo.us'}</span>
+                            <span className="text-emerald-400/90">{page.primarySourceWeb || window.location.hostname || 't7.goxo.us'}</span>
                           </div>
                         </div>
                       </div>
@@ -1302,7 +1302,7 @@ export default function PageBrandingMuse() {
 
                         <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
                           <span className="font-mono">ID: {page.fb_page_id || page.id}</span>
-                          <span className="text-emerald-400/90 font-medium">{page.primarySourceWeb || 't6.goxo.us'}</span>
+                          <span className="text-emerald-400/90 font-medium">{page.primarySourceWeb || window.location.hostname || 't7.goxo.us'}</span>
                         </div>
                       </div>
                     </div>

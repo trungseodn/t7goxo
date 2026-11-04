@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: ztreel7_postgres_prod
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: ztreel
+    ports:
+      - "5437:5432"
+    volumes:
+      - ztreel7_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - ztreel7_net
+
+  redis:
+    image: redis:7
+    container_name: ztreel7_redis_prod
+    ports:
+      - "6387:6379"
+    volumes:
+      - ztreel7_redis_data:/data
+    restart: unless-stopped
+    networks:
+      - ztreel7_net
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ztreel7_api_prod
+    ports:
+      - "3007:3000"
+    env_file:
+      - apps/api/.env
+    environment:
+      DATABASE_URL: "postgresql://root:rootpassword@postgres:5432/ztreel?schema=public"
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+      PORT: 3000
+      JWT_SECRET: "ZTREEL7_SECRET_KEY_2026"
+      RENDER_CONCURRENCY: 1
+      NODE_ENV: "production"
+    volumes:
+      - ztreel7_storage:/usr/src/app/apps/api/storage
+      - ztreel7_uploads:/usr/src/app/apps/api/uploads
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - ztreel7_net
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ztreel7_web_prod
+    ports:
+      - "8087:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - ztreel7_net
+
+volumes:
+  ztreel7_postgres_data:
+  ztreel7_redis_data:
+  ztreel7_storage:
+  ztreel7_uploads:
+
+networks:
+  ztreel7_net:
+    driver: bridge

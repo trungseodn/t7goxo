@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-title ZTTeam Muse Reel Worker - t6.goxo.us
+title ZTTeam Muse Reel Worker - t7.goxo.us
 echo ========================================================
 echo   ZTTeam - Muse Reel Auto Worker (Chrome RPA + VPS)
-echo   He thong: https://t6.goxo.us
+echo   He thong: https://t7.goxo.us
 echo ========================================================
 echo.
 
@@ -27,5 +27,5 @@ if %errorlevel% neq 0 (
 
 echo [2] Khoi dong ZTTeam Muse Worker...
 echo.
-node scripts/ztteam_muse_worker.js --target=https://t6.goxo.us
+node scripts/ztteam_muse_worker.js --target=https://t7.goxo.us
 pause

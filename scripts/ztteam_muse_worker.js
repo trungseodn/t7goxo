@@ -1,7 +1,7 @@
-﻿/**
- * ZTTeam: Dịch vụ nền tự động hóa Muse.ai (Local Worker Đa Luồng & Chống Trùng Lặp)
- * Tác giả: ZTTeam (ztteam.site)
- * Hỗ trợ đa luồng Chrome độc lập, chống dán thừa ảnh, chống tràn RAM/DOM Leak
+/**
+ * ZTTeam: D?ch v? n?n t? d?ng h�a Muse.ai (Local Worker �a Lu?ng & Ch?ng Tr�ng L?p)
+ * T�c gi?: ZTTeam (ztteam.site)
+ * H? tr? da lu?ng Chrome d?c l?p, ch?ng d�n th?a ?nh, ch?ng tr�n RAM/DOM Leak
  */
 let puppeteer;
 try {
@@ -10,8 +10,8 @@ try {
   try {
     puppeteer = require('puppeteer');
   } catch (e2) {
-    console.error('\n❌ LỖI: Chưa cài đặt thư viện puppeteer-core hoặc puppeteer!');
-    console.error('👉 Vui lòng mở CMD tại thư mục này và chạy lệnh:');
+    console.error('\n? L?I: Chua c�i d?t thu vi?n puppeteer-core ho?c puppeteer!');
+    console.error('?? Vui l�ng m? CMD t?i thu m?c n�y v� ch?y l?nh:');
     console.error('   npm install puppeteer-core axios form-data\n');
     process.exit(1);
   }
@@ -21,7 +21,7 @@ const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
 
-/** Hỗ trợ cấu hình mục tiêu động qua tham số dòng lệnh hoặc biến môi trường */
+/** H? tr? c?u h�nh m?c ti�u d?ng qua tham s? d�ng l?nh ho?c bi?n m�i tru?ng */
 const args = process.argv.slice(2);
 const targetArg = args.find(a => a.startsWith('--target='));
 const customTargetUrl = targetArg ? targetArg.split('=')[1] : process.env.TARGET_URL;
@@ -51,29 +51,29 @@ const WORKER_NAME = workerNameArg
   ? workerNameArg.split('=')[1] 
   : (customChromePort ? `Acc-${customChromePort}` : 'Acc-Chinh');
 
-const POLL_INTERVAL_MS = 15000; /** 15 giây kiểm tra hàng đợi một lần */
+const POLL_INTERVAL_MS = 15000; /** 15 gi�y ki?m tra h�ng d?i m?t l?n */
 const TEMP_DIR = path.resolve(__dirname, `./worker_temp_${customChromePort || 'default'}`);
-const SUCCESS_COOLDOWN_SEC = 45; /** Nghỉ 45 giây sau khi tạo thành công 1 video */
-const FAILURE_COOLDOWN_SEC = 45; /** Nghỉ 45 giây nếu bài gặp lỗi để Muse ổn định */
+const SUCCESS_COOLDOWN_SEC = 45; /** Ngh? 45 gi�y sau khi t?o th�nh c�ng 1 video */
+const FAILURE_COOLDOWN_SEC = 45; /** Ngh? 45 gi�y n?u b�i g?p l?i d? Muse ?n d?nh */
 
 if (!fs.existsSync(TEMP_DIR)) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
 }
 
-/** Biến cờ ngăn chặn chạy song song nhiều job trên cùng 1 worker instance */
+/** Bi?n c? ngan ch?n ch?y song song nhi?u job tr�n c�ng 1 worker instance */
 let isProcessing = false;
 
-/** Hàm đếm ngược thời gian nghỉ an toàn */
+/** H�m d?m ngu?c th?i gian ngh? an to�n */
 async function ztteam_cooldown(seconds, reason) {
-  console.log(`\n⏳ [${WORKER_NAME}] [Nghỉ an toàn] ${reason}.`);
+  console.log(`\n? [${WORKER_NAME}] [Ngh? an to�n] ${reason}.`);
   for (let i = seconds; i > 0; i--) {
-    process.stdout.write(`\r   ⏱️ [${WORKER_NAME}] Đang chờ ${i} giây trước khi tiếp tục...   `);
+    process.stdout.write(`\r   ?? [${WORKER_NAME}] �ang ch? ${i} gi�y tru?c khi ti?p t?c...   `);
     await new Promise(r => setTimeout(r, 1000));
   }
   process.stdout.write('\r                                                              \r');
 }
 
-/** Hàm tải file từ URL về máy tính */
+/** H�m t?i file t? URL v? m�y t�nh */
 async function ztteam_downloadFile(url, destPath, targetBaseUrl) {
   const fullUrl = url.startsWith('http') ? url : `${targetBaseUrl}${url}`;
   const response = await axios({
@@ -91,7 +91,7 @@ async function ztteam_downloadFile(url, destPath, targetBaseUrl) {
   });
 }
 
-/** Hàm kiểm tra cổng Chrome debugging có đang mở không */
+/** H�m ki?m tra c?ng Chrome debugging c� dang m? kh�ng */
 async function ztteam_isChromeRunning() {
   try {
     const res = await axios.get(`${CHROME_DEBUG_URL}/json/version`, { timeout: 2000 });
@@ -101,12 +101,12 @@ async function ztteam_isChromeRunning() {
   }
 }
 
-/** Hàm thực thi render 1 video trên Muse.ai với bảo vệ dán dồn ảnh và giải phóng RAM */
+/** H�m th?c thi render 1 video tr�n Muse.ai v?i b?o v? d�n d?n ?nh v� gi?i ph�ng RAM */
 async function ztteam_processVideoJobOnMuse(job, target) {
   console.log(`\n========================================================`);
-  console.log(`🎬 [${WORKER_NAME}] BẮT ĐẦU XỬ LÝ JOB TẠO REEL: #${job.id}`);
-  console.log(`🌐 Hệ thống : ${target.name} (${target.url})`);
-  console.log(`📖 Tiêu đề  : ${job.title}`);
+  console.log(`?? [${WORKER_NAME}] B?T �?U X? L� JOB T?O REEL: #${job.id}`);
+  console.log(`?? H? th?ng : ${target.name} (${target.url})`);
+  console.log(`?? Ti�u d?  : ${job.title}`);
   console.log(`========================================================`);
 
   const localImagePath = path.join(TEMP_DIR, `job_img_${job.id}.png`);
@@ -119,51 +119,51 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     let videoRendered = false;
     let base64Data = null;
 
-    /** 1. Kết nối Chrome */
-    console.log(`🌐 [${WORKER_NAME}] [1/4] Đang kết nối tới Chrome (${CHROME_DEBUG_URL})...`);
+    /** 1. K?t n?i Chrome */
+    console.log(`?? [${WORKER_NAME}] [1/4] �ang k?t n?i t?i Chrome (${CHROME_DEBUG_URL})...`);
     browser = await puppeteer.connect({
       browserURL: CHROME_DEBUG_URL,
       defaultViewport: null,
-      protocolTimeout: 600000, /** 10 phút timeout CDP */
+      protocolTimeout: 600000, /** 10 ph�t timeout CDP */
     });
 
     const pages = await browser.pages();
     page = pages.find(p => p.url().includes('muse.ai')) || pages[0];
     if (!page) {
-      console.log(`ℹ️ [${WORKER_NAME}] Mở tab Muse.ai mới...`);
+      console.log(`?? [${WORKER_NAME}] M? tab Muse.ai m?i...`);
       page = await browser.newPage();
     }
     await page.bringToFront();
 
-    /** 2. BẢO VỆ CHỐNG TRÀN RAM & XÓA SẠCH ẢNH CŨ TRONG REACT STATE:
-     * Tự động điều hướng về https://muse.ai/ trước mỗi job mới
-     * Thao tác này hủy bỏ toàn bộ video cũ trong DOM, giải phóng 3GB RAM về 100MB, và làm sạch 100% ảnh sót lại
+    /** 2. B?O V? CH?NG TR�N RAM & X�A S?CH ?NH CU TRONG REACT STATE:
+     * T? d?ng di?u hu?ng v? https://muse.ai/ tru?c m?i job m?i
+     * Thao t�c n�y h?y b? to�n b? video cu trong DOM, gi?i ph�ng 3GB RAM v? 100MB, v� l�m s?ch 100% ?nh s�t l?i
      */
-    console.log(`🔄 [${WORKER_NAME}] Đang làm mới tab Muse.ai để giải phóng RAM & xóa sạch ảnh cũ...`);
+    console.log(`?? [${WORKER_NAME}] �ang l�m m?i tab Muse.ai d? gi?i ph�ng RAM & x�a s?ch ?nh cu...`);
     await page.goto('https://muse.ai/', { waitUntil: 'domcontentloaded', timeout: 45000 });
 
-    /** Chờ khung nhập liệu sẵn sàng */
+    /** Ch? khung nh?p li?u s?n s�ng */
     await page.waitForSelector('textarea', { timeout: 25000 });
     await new Promise(r => setTimeout(r, 1500));
 
-    /** Tải ảnh hiện tại của job từ VPS về máy tính */
+    /** T?i ?nh hi?n t?i c?a job t? VPS v? m�y t�nh */
     if (fs.existsSync(localImagePath)) {
       try { fs.unlinkSync(localImagePath); } catch (e) {}
     }
-    console.log(`⬇️ [${WORKER_NAME}] Đang tải ảnh từ ${target.name}: ${job.imageUrl}`);
+    console.log(`?? [${WORKER_NAME}] �ang t?i ?nh t? ${target.name}: ${job.imageUrl}`);
     await ztteam_downloadFile(job.imageUrl, localImagePath, target.url);
-    console.log(`✅ [${WORKER_NAME}] Đã lưu ảnh tạm tại: ${localImagePath}`);
+    console.log(`? [${WORKER_NAME}] �� luu ?nh t?m t?i: ${localImagePath}`);
 
-    /** 3. BẢO VỆ 2 LỚP CHỐNG LỖI DÁN DỒN 3 - 5 ẢNH VÀO KHUNG CHAT:
-     * Lớp 1: Quét dọn sạch sẽ tất cả mọi nút đóng/xóa ảnh nếu có trước khi upload
+    /** 3. B?O V? 2 L?P CH?NG L?I D�N D?N 3 - 5 ?NH V�O KHUNG CHAT:
+     * L?p 1: Qu�t d?n s?ch s? t?t c? m?i n�t d�ng/x�a ?nh n?u c� tru?c khi upload
      */
-    console.log(`🧹 [${WORKER_NAME}] Đang quét dọn khung chat để đảm bảo không còn ảnh sót lại...`);
+    console.log(`?? [${WORKER_NAME}] �ang qu�t d?n khung chat d? d?m b?o kh�ng c�n ?nh s�t l?i...`);
     await page.evaluate(() => {
       const allButtons = Array.from(document.querySelectorAll('button'));
       const removeButtons = allButtons.filter(btn => {
         const hasImg = btn.closest('div')?.querySelector('img') !== null;
         const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
-        const isRemove = ariaLabel.includes('xóa') || ariaLabel.includes('delete') || ariaLabel.includes('remove') || ariaLabel.includes('close');
+        const isRemove = ariaLabel.includes('x�a') || ariaLabel.includes('delete') || ariaLabel.includes('remove') || ariaLabel.includes('close');
         return hasImg || isRemove;
       });
       removeButtons.forEach(b => {
@@ -172,17 +172,17 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     });
     await new Promise(r => setTimeout(r, 600));
 
-    /** Chọn đúng thẻ input file của khung chat */
+    /** Ch?n d�ng th? input file c?a khung chat */
     const fileInputs = await page.$$('input[type="file"]');
-    if (!fileInputs || fileInputs.length === 0) throw new Error('Không tìm thấy input[type="file"] trên Muse.ai');
+    if (!fileInputs || fileInputs.length === 0) throw new Error('Kh�ng t�m th?y input[type="file"] tr�n Muse.ai');
     const chatFileInput = fileInputs.length > 1 ? fileInputs[fileInputs.length - 1] : fileInputs[0];
     
-    console.log(`📤 [${WORKER_NAME}] Đang đính kèm ảnh duy nhất của bài viết vào khung chat...`);
+    console.log(`?? [${WORKER_NAME}] �ang d�nh k�m ?nh duy nh?t c?a b�i vi?t v�o khung chat...`);
     await chatFileInput.uploadFile(localImagePath);
     await new Promise(r => setTimeout(r, 3000));
 
-    /** Lớp 2: KIỂM TRA NGHIÊM NGẶT SỐ LƯỢNG ẢNH SAU KHI UPLOAD
-     * Đảm bảo chính xác 1 ảnh duy nhất, nếu có nhiều hơn 1 thì lập tức xóa bỏ các ảnh thừa
+    /** L?p 2: KI?M TRA NGHI�M NG?T S? LU?NG ?NH SAU KHI UPLOAD
+     * �?m b?o ch�nh x�c 1 ?nh duy nh?t, n?u c� nhi?u hon 1 th� l?p t?c x�a b? c�c ?nh th?a
      */
     const postUploadCheck = await page.evaluate(() => {
       const form = document.querySelector('textarea')?.closest('form') || document.querySelector('textarea')?.closest('div.relative') || document.body;
@@ -196,36 +196,36 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     });
 
     if (postUploadCheck.count > 1) {
-      console.warn(`⚠️ [${WORKER_NAME}] CẢNH BÁO: Phát hiện ${postUploadCheck.count} ảnh trong khung chat! Đang tiến hành loại bỏ các ảnh thừa...`);
+      console.warn(`?? [${WORKER_NAME}] C?NH B�O: Ph�t hi?n ${postUploadCheck.count} ?nh trong khung chat! �ang ti?n h�nh lo?i b? c�c ?nh th?a...`);
       await page.evaluate(() => {
         const form = document.querySelector('textarea')?.closest('form') || document.querySelector('textarea')?.closest('div.relative') || document.body;
         const removeBtns = Array.from(form.querySelectorAll('button')).filter(btn => {
           return btn.closest('div')?.querySelector('img') !== null;
         });
-        /** Xóa từ đầu đến trước ảnh cuối cùng để giữ lại đúng 1 ảnh mới nhất */
+        /** X�a t? d?u d?n tru?c ?nh cu?i c�ng d? gi? l?i d�ng 1 ?nh m?i nh?t */
         for (let i = 0; i < removeBtns.length - 1; i++) {
           try { removeBtns[i].click(); } catch (e) {}
         }
       });
       await new Promise(r => setTimeout(r, 1000));
     }
-    console.log(`✅ [${WORKER_NAME}] Đã xác nhận khung chat chỉ có ĐÚNG 1 ảnh chuẩn.`);
+    console.log(`? [${WORKER_NAME}] �� x�c nh?n khung chat ch? c� ��NG 1 ?nh chu?n.`);
 
-    /** 4. ĐÓNG DẤU DOM (DATA-ZTTEAM-OLD): Đánh dấu 100% video, nút tải và tin nhắn cũ để tuyệt đối không nhận nhầm */
-    console.log(`🏷️ [${WORKER_NAME}] Đang đóng dấu DOM các video và nút tải cũ trước khi gửi prompt...`);
+    /** 4. ��NG D?U DOM (DATA-ZTTEAM-OLD): ��nh d?u 100% video, n�t t?i v� tin nh?n cu d? tuy?t d?i kh�ng nh?n nh?m */
+    console.log(`??? [${WORKER_NAME}] �ang d�ng d?u DOM c�c video v� n�t t?i cu tru?c khi g?i prompt...`);
     await page.evaluate(() => {
-      document.querySelectorAll('video, button[aria-label="Tải video xuống"], [data-message-author-role="assistant"], .prose').forEach(el => {
+      document.querySelectorAll('video, button[aria-label="T?i video xu?ng"], [data-message-author-role="assistant"], .prose').forEach(el => {
         el.setAttribute('data-ztteam-old', 'true');
       });
     });
 
-    /** 5. Dán prompt duy nhất 1 lần và bấm gửi */
-    console.log(`✍️ [${WORKER_NAME}] Đang dán câu lệnh & nội dung câu chuyện...`);
+    /** 5. D�n prompt duy nh?t 1 l?n v� b?m g?i */
+    console.log(`?? [${WORKER_NAME}] �ang d�n c�u l?nh & n?i dung c�u chuy?n...`);
     const textarea = await page.$('textarea');
-    if (!textarea) throw new Error('Không tìm thấy ô textarea để nhập prompt');
+    if (!textarea) throw new Error('Kh�ng t�m th?y � textarea d? nh?p prompt');
     await textarea.click();
 
-    /** Dán toàn bộ nội dung qua React prototype setter kết hợp execCommand để kích hoạt đầy đủ sự kiện */
+    /** D�n to�n b? n?i dung qua React prototype setter k?t h?p execCommand d? k�ch ho?t d?y d? s? ki?n */
     await page.evaluate((fullPrompt) => {
       const ta = document.querySelector('textarea');
       if (!ta) return;
@@ -244,22 +244,22 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     }, job.prompt);
     await new Promise(r => setTimeout(r, 1000));
 
-    console.log(`🚀 [${WORKER_NAME}] Đang bấm gửi tin nhắn...`);
+    console.log(`?? [${WORKER_NAME}] �ang b?m g?i tin nh?n...`);
     await page.evaluate(() => {
       const ta = document.querySelector('textarea');
       if (!ta) return false;
 
       const allButtons = Array.from(document.querySelectorAll('button'));
-      /** 1. Tìm nút có nhãn Gửi hoặc Send */
+      /** 1. T�m n�t c� nh�n G?i ho?c Send */
       let targetBtn = allButtons.find(b => {
         if (b.disabled) return false;
         const aria = (b.getAttribute('aria-label') || '').toLowerCase();
         const title = (b.getAttribute('title') || '').toLowerCase();
         const text = (b.innerText || '').toLowerCase();
-        return aria.includes('gửi') || aria.includes('send') || title.includes('gửi') || title.includes('send') || text.includes('gửi') || text.includes('send');
+        return aria.includes('g?i') || aria.includes('send') || title.includes('g?i') || title.includes('send') || text.includes('g?i') || text.includes('send');
       });
 
-      /** 2. Nếu không có nhãn, tìm nút tròn chứa SVG nằm trong hoặc gần khung nhập liệu */
+      /** 2. N?u kh�ng c� nh�n, t�m n�t tr�n ch?a SVG n?m trong ho?c g?n khung nh?p li?u */
       if (!targetBtn && ta.parentElement) {
         let parent = ta.parentElement;
         for (let i = 0; i < 5 && parent; i++) {
@@ -267,7 +267,7 @@ async function ztteam_processVideoJobOnMuse(job, target) {
           for (const b of btns) {
             if (b.disabled) continue;
             const aria = (b.getAttribute('aria-label') || '').toLowerCase();
-            if (aria.includes('đính kèm') || aria.includes('attach') || aria.includes('xóa') || aria.includes('close') || b.querySelector('input[type="file"]')) {
+            if (aria.includes('d�nh k�m') || aria.includes('attach') || aria.includes('x�a') || aria.includes('close') || b.querySelector('input[type="file"]')) {
               continue;
             }
             if (b.querySelector('svg')) {
@@ -287,7 +287,7 @@ async function ztteam_processVideoJobOnMuse(job, target) {
       return false;
     });
 
-    /** Vòng lặp xác nhận tin nhắn đã thực sự được gửi đi */
+    /** V�ng l?p x�c nh?n tin nh?n d� th?c s? du?c g?i di */
     let ztteam_isSent = false;
     for (let attempt = 0; attempt < 5; attempt++) {
       await new Promise(r => setTimeout(r, 1200));
@@ -298,11 +298,11 @@ async function ztteam_processVideoJobOnMuse(job, target) {
 
       if (!textareaContent) {
         ztteam_isSent = true;
-        console.log(`✅ [${WORKER_NAME}] Đã xác nhận tin nhắn đã gửi đi (khung chat đã sạch)!`);
+        console.log(`? [${WORKER_NAME}] �� x�c nh?n tin nh?n d� g?i di (khung chat d� s?ch)!`);
         break;
       }
 
-      console.log(`⚠️ [${WORKER_NAME}] Tin nhắn chưa bay (thử kích hoạt lại lần ${attempt + 1}/5)...`);
+      console.log(`?? [${WORKER_NAME}] Tin nh?n chua bay (th? k�ch ho?t l?i l?n ${attempt + 1}/5)...`);
       await page.evaluate(() => {
         const ta = document.querySelector('textarea');
         if (ta) ta.focus();
@@ -317,7 +317,7 @@ async function ztteam_processVideoJobOnMuse(job, target) {
       }
     }
 
-    /** 6. ĐÁNH DẤU RANH GIỚI TIN NHẮN VỪA GỬI: Chỉ lấy video xuất hiện SAU tin nhắn này */
+    /** 6. ��NH D?U RANH GI?I TIN NH?N V?A G?I: Ch? l?y video xu?t hi?n SAU tin nh?n n�y */
     await page.evaluate((promptSnippet) => {
       const allDivs = Array.from(document.querySelectorAll('[data-message-author-role="user"], div'));
       const promptDiv = allDivs.find(d => {
@@ -329,10 +329,10 @@ async function ztteam_processVideoJobOnMuse(job, target) {
       }
     }, job.prompt.slice(0, 30));
 
-    /** 7. Chờ Muse.ai render xong video 15s (Tối thiểu 25s, tối đa 7 phút) */
-    const timeoutMs = 420000; /** 7 phút tối đa */
-    const MIN_RENDER_SECONDS = 25; /** Bắt buộc chờ ít nhất 25 giây thực tế để loại trừ kết thúc non */
-    console.log(`⏳ [${WORKER_NAME}] [2/4] Đang chờ Muse.ai render video mới (tối thiểu 25s, tối đa 7 phút)...`);
+    /** 7. Ch? Muse.ai render xong video 15s (T?i thi?u 25s, t?i da 7 ph�t) */
+    const timeoutMs = 420000; /** 7 ph�t t?i da */
+    const MIN_RENDER_SECONDS = 25; /** B?t bu?c ch? �t nh?t 25 gi�y th?c t? d? lo?i tr? k?t th�c non */
+    console.log(`? [${WORKER_NAME}] [2/4] �ang ch? Muse.ai render video m?i (t?i thi?u 25s, t?i da 7 ph�t)...`);
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -341,16 +341,16 @@ async function ztteam_processVideoJobOnMuse(job, target) {
 
       const check = await page.evaluate((minSec, elapsed) => {
         const refusalKeywords = [
-          'không tạo được video',
-          'gửi ảnh khác nhé',
-          'không thể tạo video',
-          'vi phạm chính sách',
-          'nội dung này không phù hợp',
-          'thử lại với ảnh khác',
-          'lỗi tạo video'
+          'kh�ng t?o du?c video',
+          'g?i ?nh kh�c nh�',
+          'kh�ng th? t?o video',
+          'vi ph?m ch�nh s�ch',
+          'n?i dung n�y kh�ng ph� h?p',
+          'th? l?i v?i ?nh kh�c',
+          'l?i t?o video'
         ];
 
-        /** 1. Quét từ chối: Chỉ xét các tin nhắn mới (không có data-ztteam-old="true") */
+        /** 1. Qu�t t? ch?i: Ch? x�t c�c tin nh?n m?i (kh�ng c� data-ztteam-old="true") */
         const assistantBubbles = Array.from(document.querySelectorAll('[data-message-author-role="assistant"], .prose')).filter(el => {
           return el.getAttribute('data-ztteam-old') !== 'true';
         });
@@ -365,22 +365,22 @@ async function ztteam_processVideoJobOnMuse(job, target) {
           }
         }
 
-        /** 2. Kiểm tra cờ đang tạo video (Stop button, spinner, chữ đang tạo) */
+        /** 2. Ki?m tra c? dang t?o video (Stop button, spinner, ch? dang t?o) */
         const allButtons = Array.from(document.querySelectorAll('button'));
         const hasStopButton = allButtons.some(b => {
           const aria = (b.getAttribute('aria-label') || '').toLowerCase();
           const title = (b.getAttribute('title') || '').toLowerCase();
-          return aria.includes('dừng') || aria.includes('stop') || title.includes('dừng') || title.includes('stop');
+          return aria.includes('d?ng') || aria.includes('stop') || title.includes('d?ng') || title.includes('stop');
         });
 
         const hasGeneratingText = assistantBubbles.some(bubble => {
           const txt = (bubble.innerText || '').toLowerCase();
-          return txt.includes('đang tạo') || txt.includes('generating') || txt.includes('đang dựng');
+          return txt.includes('dang t?o') || txt.includes('generating') || txt.includes('dang d?ng');
         });
 
         const isGenerating = hasStopButton || hasGeneratingText;
 
-        /** 3. Lọc video: Bỏ avatar và BỎ 100% video cũ đã gắn data-ztteam-old="true" */
+        /** 3. L?c video: B? avatar v� B? 100% video cu d� g?n data-ztteam-old="true" */
         const allVideos = Array.from(document.querySelectorAll('video')).filter(v => {
           const isAvatar = v.closest('.rounded-full') !== null || (v.videoWidth === 480 && v.videoHeight === 480);
           return !isAvatar;
@@ -388,15 +388,15 @@ async function ztteam_processVideoJobOnMuse(job, target) {
 
         const newVideos = allVideos.filter(v => v.getAttribute('data-ztteam-old') !== 'true');
 
-        /** Ranh giới DOM: Nếu có data-ztteam-user-prompt, video mới bắt buộc phải nằm SAU tin nhắn vừa gửi */
+        /** Ranh gi?i DOM: N?u c� data-ztteam-user-prompt, video m?i b?t bu?c ph?i n?m SAU tin nh?n v?a g?i */
         const userPromptEl = document.querySelector('[data-ztteam-user-prompt="true"]');
         const validVideos = newVideos.filter(v => {
           if (!userPromptEl) return true;
           return !!(userPromptEl.compareDocumentPosition(v) & Node.DOCUMENT_POSITION_FOLLOWING);
         });
 
-        /** Kiểm tra nút tải video MỚI: Không có data-ztteam-old="true" và nằm sau user prompt */
-        const newDownloadBtns = Array.from(document.querySelectorAll('button[aria-label="Tải video xuống"]')).filter(b => {
+        /** Ki?m tra n�t t?i video M?I: Kh�ng c� data-ztteam-old="true" v� n?m sau user prompt */
+        const newDownloadBtns = Array.from(document.querySelectorAll('button[aria-label="T?i video xu?ng"]')).filter(b => {
           if (b.getAttribute('data-ztteam-old') === 'true') return false;
           if (userPromptEl) {
             return !!(userPromptEl.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -406,15 +406,15 @@ async function ztteam_processVideoJobOnMuse(job, target) {
 
         const hasNewDownloadBtn = newDownloadBtns.length > 0;
 
-        /** Kiểm tra video mục tiêu mới nhất */
+        /** Ki?m tra video m?c ti�u m?i nh?t */
         const targetVideo = validVideos.length > 0 ? validVideos[validVideos.length - 1] : null;
         const videoDuration = targetVideo ? (targetVideo.duration || 0) : 0;
         const videoReadyState = targetVideo ? targetVideo.readyState : 0;
 
-        /** Điều kiện hoàn tất nghiêm ngặt:
-         * 1. Đã trải qua ít nhất 25 giây thực tế
-         * 2. Không còn biểu tượng/chữ đang tạo (isGenerating = false)
-         * 3. Có nút tải mới HOẶC (có video mới với thời lượng >= 10s và readyState >= 2)
+        /** �i?u ki?n ho�n t?t nghi�m ng?t:
+         * 1. �� tr?i qua �t nh?t 25 gi�y th?c t?
+         * 2. Kh�ng c�n bi?u tu?ng/ch? dang t?o (isGenerating = false)
+         * 3. C� n�t t?i m?i HO?C (c� video m?i v?i th?i lu?ng >= 10s v� readyState >= 2)
          */
         const isTimePassed = elapsed >= minSec;
         const isVideoLoaded = targetVideo && videoDuration >= 10 && videoReadyState >= 2 && !targetVideo.seeking;
@@ -433,28 +433,28 @@ async function ztteam_processVideoJobOnMuse(job, target) {
       }, MIN_RENDER_SECONDS, elapsedSec);
 
       if (check.refusalError) {
-        console.log(`\n❌ [${WORKER_NAME}] Muse.ai từ chối: "${check.refusalError}"`);
-        throw new Error(`Muse.ai từ chối: ${check.refusalError}`);
+        console.log(`\n? [${WORKER_NAME}] Muse.ai t? ch?i: "${check.refusalError}"`);
+        throw new Error(`Muse.ai t? ch?i: ${check.refusalError}`);
       }
 
-      process.stdout.write(`\r   ⏱️ [${WORKER_NAME}] Đang render: ${elapsedSec}s | Video mới: ${check.validVideoCount} | Nút tải mới: ${check.hasNewDownloadBtn ? 'CÓ' : 'Chưa'} | Đang tạo: ${check.isGenerating ? 'CÒN' : 'Xong'} | Thời lượng: ${check.videoDuration ? check.videoDuration.toFixed(1) + 's' : '0s'} | Trạng thái: ${check.isReady ? 'HOÀN TẤT' : 'Đang chờ...'}`);
+      process.stdout.write(`\r   ?? [${WORKER_NAME}] �ang render: ${elapsedSec}s | Video m?i: ${check.validVideoCount} | N�t t?i m?i: ${check.hasNewDownloadBtn ? 'C�' : 'Chua'} | �ang t?o: ${check.isGenerating ? 'C�N' : 'Xong'} | Th?i lu?ng: ${check.videoDuration ? check.videoDuration.toFixed(1) + 's' : '0s'} | Tr?ng th�i: ${check.isReady ? 'HO�N T?T' : '�ang ch?...'}`);
 
       if (check.isReady) {
-        console.log(`\n🎉 [${WORKER_NAME}] Muse.ai đã render xong video mới sau ${elapsedSec} giây!`);
+        console.log(`\n?? [${WORKER_NAME}] Muse.ai d� render xong video m?i sau ${elapsedSec} gi�y!`);
         videoRendered = true;
         break;
       }
     }
 
     if (!videoRendered) {
-      throw new Error('Quá thời gian chờ render trên Muse.ai (timeout 7 phút)');
+      throw new Error('Qu� th?i gian ch? render tr�n Muse.ai (timeout 7 ph�t)');
     }
 
-    /** Chờ 5s để stream buffer video blob được trình duyệt tải trọn vẹn vào RAM */
+    /** Ch? 5s d? stream buffer video blob du?c tr�nh duy?t t?i tr?n v?n v�o RAM */
     await new Promise(r => setTimeout(r, 5000));
 
-    /** 8. Trích xuất dữ liệu video blob mới chuẩn xác (Chỉ lấy video không có data-ztteam-old="true") */
-    console.log(`💾 [${WORKER_NAME}] [3/4] Đang trích xuất dữ liệu video MP4 mới...`);
+    /** 8. Tr�ch xu?t d? li?u video blob m?i chu?n x�c (Ch? l?y video kh�ng c� data-ztteam-old="true") */
+    console.log(`?? [${WORKER_NAME}] [3/4] �ang tr�ch xu?t d? li?u video MP4 m?i...`);
     base64Data = await page.evaluate(async () => {
       const allVideos = Array.from(document.querySelectorAll('video')).filter(v => {
         const isAvatar = v.closest('.rounded-full') !== null || (v.videoWidth === 480 && v.videoHeight === 480);
@@ -485,19 +485,19 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     });
 
     if (!base64Data || !base64Data.startsWith('data:')) {
-      throw new Error('Không đọc được dữ liệu video stream mới từ Muse.ai');
+      throw new Error('Kh�ng d?c du?c d? li?u video stream m?i t? Muse.ai');
     }
 
     const buffer = Buffer.from(base64Data.split(',')[1], 'base64');
     if (buffer.length < 1.5 * 1024 * 1024) {
-      throw new Error(`File video tải về quá nhỏ (${(buffer.length / 1024 / 1024).toFixed(2)} MB), video 15s tiêu chuẩn phải trên 1.5MB.`);
+      throw new Error(`File video t?i v? qu� nh? (${(buffer.length / 1024 / 1024).toFixed(2)} MB), video 15s ti�u chu?n ph?i tr�n 1.5MB.`);
     }
 
     fs.writeFileSync(localVideoPath, buffer);
-    console.log(`✅ [${WORKER_NAME}] Đã lưu file video MP4 hoàn chỉnh: ${(buffer.length / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`? [${WORKER_NAME}] �� luu file video MP4 ho�n ch?nh: ${(buffer.length / 1024 / 1024).toFixed(2)} MB`);
 
-    /** 7. Đính kèm video lên VPS */
-    console.log(`🚀 [${WORKER_NAME}] [4/4] Đang tải video lên hệ thống ${target.name}...`);
+    /** 7. ��nh k�m video l�n VPS */
+    console.log(`?? [${WORKER_NAME}] [4/4] �ang t?i video l�n h? th?ng ${target.name}...`);
     const formData = new FormData();
     formData.append('video', fs.createReadStream(localVideoPath));
 
@@ -509,31 +509,31 @@ async function ztteam_processVideoJobOnMuse(job, target) {
     });
 
     console.log(`========================================================`);
-    console.log(`🎉 HOÀN TẤT THÀNH CÔNG JOB #${job.id} CHO [${target.name}] TỪ [${WORKER_NAME}]!`);
-    console.log(`📹 Video URL trên hệ thống: ${uploadRes.data.videoUrl}`);
+    console.log(`?? HO�N T?T TH�NH C�NG JOB #${job.id} CHO [${target.name}] T? [${WORKER_NAME}]!`);
+    console.log(`?? Video URL tr�n h? th?ng: ${uploadRes.data.videoUrl}`);
     console.log(`========================================================\n`);
 
-    /** Nghỉ an toàn sau khi tạo thành công 1 video */
-    await ztteam_cooldown(SUCCESS_COOLDOWN_SEC, 'Đã hoàn tất và tải video lên VPS. Dừng nghỉ trước khi tạo bài mới');
+    /** Ngh? an to�n sau khi t?o th�nh c�ng 1 video */
+    await ztteam_cooldown(SUCCESS_COOLDOWN_SEC, '�� ho�n t?t v� t?i video l�n VPS. D?ng ngh? tru?c khi t?o b�i m?i');
   } catch (err) {
-    console.error(`\n❌ [${WORKER_NAME}] LỖI KHI XỬ LÝ JOB #${job.id}:`, err.message);
+    console.error(`\n? [${WORKER_NAME}] L?I KHI X? L� JOB #${job.id}:`, err.message);
 
-    /** Báo lỗi lên đúng hệ thống VPS */
+    /** B�o l?i l�n d�ng h? th?ng VPS */
     try {
       await axios.post(`${target.url}/api/image/${job.id}/fail-video`, { error: err.message });
-      console.log(`⚠️ [${WORKER_NAME}] Đã cập nhật trạng thái FAILED lên [${target.name}].`);
+      console.log(`?? [${WORKER_NAME}] �� c?p nh?t tr?ng th�i FAILED l�n [${target.name}].`);
     } catch (apiErr) {
-      console.error(`[${WORKER_NAME}] Không thể báo lỗi lên VPS:`, apiErr.message);
+      console.error(`[${WORKER_NAME}] Kh�ng th? b�o l?i l�n VPS:`, apiErr.message);
     }
 
-    /** Nghỉ an toàn sau khi gặp lỗi */
-    await ztteam_cooldown(FAILURE_COOLDOWN_SEC, 'Gặp lỗi trong quá trình tạo video. Dừng nghỉ trước khi thử lại');
+    /** Ngh? an to�n sau khi g?p l?i */
+    await ztteam_cooldown(FAILURE_COOLDOWN_SEC, 'G?p l?i trong qu� tr�nh t?o video. D?ng ngh? tru?c khi th? l?i');
   } finally {
-    /** Đóng kết nối Puppeteer an toàn sau mỗi job */
+    /** ��ng k?t n?i Puppeteer an to�n sau m?i job */
     if (browser) {
       try { browser.disconnect(); } catch (e) {}
     }
-    /** Dọn dẹp file tạm trên máy tính */
+    /** D?n d?p file t?m tr�n m�y t�nh */
     if (fs.existsSync(localImagePath)) {
       try { fs.unlinkSync(localImagePath); } catch (e) {}
     }
@@ -543,38 +543,38 @@ async function ztteam_processVideoJobOnMuse(job, target) {
   }
 }
 
-/** Vòng lặp chính luân phiên thăm dò hàng đợi từ hệ thống */
+/** V�ng l?p ch�nh lu�n phi�n tham d� h�ng d?i t? h? th?ng */
 async function ztteam_workerLoop() {
   if (isProcessing) return;
 
   try {
-    /** 1. Kiểm tra Chrome có đang bật không */
+    /** 1. Ki?m tra Chrome c� dang b?t kh�ng */
     const chromeAlive = await ztteam_isChromeRunning();
     if (!chromeAlive) {
-      process.stdout.write(`\r[${WORKER_NAME}] Chờ Chrome mở tại ${CHROME_DEBUG_URL}...`);
+      process.stdout.write(`\r[${WORKER_NAME}] Ch? Chrome m? t?i ${CHROME_DEBUG_URL}...`);
       return;
     }
 
-    /** 2. Lấy hệ thống kiểm tra theo vòng lặp Round-Robin */
+    /** 2. L?y h? th?ng ki?m tra theo v�ng l?p Round-Robin */
     const target = VPS_TARGETS[currentTargetIndex];
     currentTargetIndex = (currentTargetIndex + 1) % VPS_TARGETS.length;
 
-    /** 3. Hỏi hệ thống xem có job tạo video không */
+    /** 3. H?i h? th?ng xem c� job t?o video kh�ng */
     const res = await axios.get(`${target.url}/api/image/pending-video?auto=true`, { timeout: 10000 });
     if (res.data && res.data.hasJob && res.data.job) {
       isProcessing = true;
-      console.log(`\n🎯 [${WORKER_NAME}] Phát hiện bài viết cần tạo Video từ [${target.name}]: Job #${res.data.job.id}`);
+      console.log(`\n?? [${WORKER_NAME}] Ph�t hi?n b�i vi?t c?n t?o Video t? [${target.name}]: Job #${res.data.job.id}`);
       try {
         await ztteam_processVideoJobOnMuse(res.data.job, target);
       } finally {
         isProcessing = false;
       }
     } else {
-      process.stdout.write(`\r[${new Date().toLocaleTimeString()}] [${WORKER_NAME}] Đang kiểm tra [${target.name}]... (Hàng đợi trống)`);
+      process.stdout.write(`\r[${new Date().toLocaleTimeString()}] [${WORKER_NAME}] �ang ki?m tra [${target.name}]... (H�ng d?i tr?ng)`);
     }
   } catch (err) {
     if (err.code === 'ECONNREFUSED') {
-      process.stdout.write(`\r⚠️ [${WORKER_NAME}] Không kết nối được tới hệ thống... Đang thử lại`);
+      process.stdout.write(`\r?? [${WORKER_NAME}] Kh�ng k?t n?i du?c t?i h? th?ng... �ang th? l?i`);
     } else {
       console.error(`\n[${WORKER_NAME}] Worker Error:`, err.message);
     }
@@ -582,14 +582,15 @@ async function ztteam_workerLoop() {
 }
 
 console.log('========================================================');
-console.log(`🚀 ZTTEAM MUSE REEL WORKER [${WORKER_NAME}] ĐÃ KHỞI CHẠY!`);
-console.log('📋 Danh sách hệ thống phục vụ luân phiên:');
+console.log(`?? ZTTEAM MUSE REEL WORKER [${WORKER_NAME}] �� KH?I CH?Y!`);
+console.log('?? Danh s�ch h? th?ng ph?c v? lu�n phi�n:');
 VPS_TARGETS.forEach(t => console.log(`   - ${t.name}: ${t.url}`));
-console.log(`🖥️ Chrome Target : ${CHROME_DEBUG_URL}`);
-console.log(`⏱️ Chu kỳ kiểm tra: mỗi ${POLL_INTERVAL_MS / 1000}s`);
-console.log('🛡️ Cơ chế: Tự động F5 dọn RAM, chống dán dồn 3-5 ảnh 100%');
+console.log(`??? Chrome Target : ${CHROME_DEBUG_URL}`);
+console.log(`?? Chu k? ki?m tra: m?i ${POLL_INTERVAL_MS / 1000}s`);
+console.log('??? Co ch?: T? d?ng F5 d?n RAM, ch?ng d�n d?n 3-5 ?nh 100%');
 console.log('========================================================\n');
 
-/** Chạy ngay lần đầu và duy trì chu kỳ polling */
+/** Ch?y ngay l?n d?u v� duy tr� chu k? polling */
 ztteam_workerLoop();
 setInterval(ztteam_workerLoop, POLL_INTERVAL_MS);
+

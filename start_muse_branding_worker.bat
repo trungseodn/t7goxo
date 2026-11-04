@@ -1,16 +1,16 @@
 @echo off
 set "PATH=%SystemRoot%\System32;%SystemRoot%;%PATH%"
 chcp 65001 >nul
-title ZTTeam Muse Branding Worker (Port 9245) - t6.goxo.us
+title ZTTeam Muse Branding Worker (Port 9245) - t7.goxo.us
 cd /d "%~dp0"
 
-set "NODE_PATH=%~dp0node_modules;D:\projects\t6.goxo.us\node_modules;D:\projects\t4.goxo.us\node_modules;%NODE_PATH%"
+set "NODE_PATH=%~dp0node_modules;D:\projects\t7.goxo.us\node_modules;D:\projects\t6.goxo.us\node_modules;D:\projects\t4.goxo.us\node_modules;%NODE_PATH%"
 
 echo ========================================================
 echo   ZTTeam Muse Branding Worker - Avatar va Cover (Port 9245)
-echo   He thong: https://t6.goxo.us
+echo   He thong: https://t7.goxo.us
 echo ========================================================
 echo.
 
-node scripts/ztteam_muse_branding_worker.js --target=https://t6.goxo.us --chrome-port=9245 --worker-name=Branding-9245
+node scripts/ztteam_muse_branding_worker.js --target=https://t7.goxo.us --chrome-port=9245 --worker-name=Branding-9245
 pause

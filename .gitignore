@@ -53,3 +53,4 @@ powershell.cmd
 powershell.bat
 
 scripts/worker_temp*
+powershell.exe
