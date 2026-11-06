@@ -237,11 +237,15 @@ export class ZTTeamCrawlerService {
       if (alreadyAssignedImage) {
         this.logger.log(`[CHỐNG TRÙNG BÀI] Bài viết #${wpResult.id} ("${storyTitle}") đã được phân bổ cho Fanpage "${assignedPageName || 'Đã có'}" trước đó. Bỏ qua hoàn toàn, không tạo thêm bản ghi trùng lặp.`);
         return {
-          id: alreadyAssignedImage.id,
+          success: true,
+          title: storyTitle,
           wpPostId: wpResult.id,
           wpPostUrl: wpResult.url,
-          fanpageCount: 0,
-          status: 'SKIPPED_DUPLICATE',
+          image2kUrl: alreadyAssignedImage.image_url || '',
+          fanpageCaption: alreadyAssignedImage.ai_caption || '',
+          firstComment: alreadyAssignedImage.ai_first_comment || undefined,
+          pageId: alreadyAssignedImage.page_id || undefined,
+          imageId: alreadyAssignedImage.id,
         };
       } else if (candidatePages.length > 0) {
         /** Round-Robin Độc Quyền: Chọn Fanpage lâu nhất chưa nhận bài mới để phân bổ */
