@@ -211,7 +211,7 @@ export default function WordPressSites() {
     setSourceCategory('');
     setFrequencyCron('0 */6 * * *');
     setBatchSize(1);
-    setMaxScanPages(20);
+    setMaxScanPages(200);
     setKeepContentImages(false);
   };
 
@@ -228,7 +228,7 @@ export default function WordPressSites() {
       setKeepContentImages(Boolean(rules.keepContentImages));
     } catch (e) {
       setBatchSize(1);
-      setMaxScanPages(20);
+      setMaxScanPages(200);
       setKeepContentImages(false);
     }
   };
@@ -649,7 +649,7 @@ export default function WordPressSites() {
                         </h5>
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => { setShowSourceForm(site.id); setEditingSourceId(null); setSourceUrl(''); setSourceCategory(''); setFrequencyCron('0 */6 * * *'); setBatchSize(1); setMaxScanPages(20); }}
+                            onClick={() => { setShowSourceForm(site.id); setEditingSourceId(null); setSourceUrl(''); setSourceCategory(''); setFrequencyCron('0 */6 * * *'); setBatchSize(1); setMaxScanPages(200); }}
                             className="text-cyan-400 hover:text-cyan-300 text-xs font-bold flex items-center gap-1 uppercase tracking-wide"
                           >
                             <span className="material-symbols-outlined text-base">add_circle</span>
@@ -748,9 +748,24 @@ export default function WordPressSites() {
                                       type="number"
                                       min={1}
                                       max={500}
-                                      value={maxScanPages}
-                                      onChange={(e) => setMaxScanPages(Math.max(1, Math.min(500, parseInt(e.target.value) || 200)))}
-                                      className="w-16 py-1 px-2.5 rounded-full bg-fb-surface-hover text-fb-text text-xs text-center font-bold focus:outline-none focus:ring-2 focus:ring-fb-blue border border-white/10"
+                                      value={maxScanPages || ''}
+                                      onChange={(e) => {
+                                        const raw = e.target.value;
+                                        if (raw === '') {
+                                          setMaxScanPages(0);
+                                        } else {
+                                          const val = parseInt(raw, 10);
+                                          if (!isNaN(val)) {
+                                            setMaxScanPages(Math.max(1, Math.min(500, val)));
+                                          }
+                                        }
+                                      }}
+                                      onBlur={() => {
+                                        if (!maxScanPages || maxScanPages < 1) {
+                                          setMaxScanPages(200);
+                                        }
+                                      }}
+                                      className="w-20 sm:w-24 py-1.5 px-3 rounded-full bg-fb-surface-hover text-fb-text text-xs text-center font-bold focus:outline-none focus:ring-2 focus:ring-fb-blue border border-white/10"
                                       required
                                     />
                                     <span className="text-xs text-fb-text-muted font-bold">trang</span>
