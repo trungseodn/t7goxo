@@ -235,7 +235,14 @@ export class ZTTeamCrawlerService {
       const assignedPageName = alreadyAssignedImage?.page?.name;
 
       if (alreadyAssignedImage) {
-        this.logger.log(`[CHỐNG TRÙNG BÀI] Bài viết #${wpResult.id} ("${storyTitle}") đã được phân bổ cho Fanpage "${assignedPageName || 'Đã có'}" trước đó. Bỏ qua hoàn toàn, tuyệt đối không gán thêm cho Fanpage khác để đảm bảo các Page không bị trùng bài.`);
+        this.logger.log(`[CHỐNG TRÙNG BÀI] Bài viết #${wpResult.id} ("${storyTitle}") đã được phân bổ cho Fanpage "${assignedPageName || 'Đã có'}" trước đó. Bỏ qua hoàn toàn, không tạo thêm bản ghi trùng lặp.`);
+        return {
+          id: alreadyAssignedImage.id,
+          wpPostId: wpResult.id,
+          wpPostUrl: wpResult.url,
+          fanpageCount: 0,
+          status: 'SKIPPED_DUPLICATE',
+        };
       } else if (candidatePages.length > 0) {
         /** Round-Robin Độc Quyền: Chọn Fanpage lâu nhất chưa nhận bài mới để phân bổ */
         let chosenPage = candidatePages[0];
