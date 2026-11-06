@@ -201,7 +201,7 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
     isManualTrigger = false
   ): Promise<{ processedCount: number; freshFoundCount: number; scannedPagesCount: number }> {
     let maxArticlesPerCycle = 1;
-    let maxScanPages = 20; // Mặc định quét sâu tối đa 20 trang phân trang
+    let maxScanPages = 200; // Mặc định quét sâu tối đa 200 trang phân trang
     let keepContentImages = false;
 
     try {
@@ -210,7 +210,7 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         maxArticlesPerCycle = Math.max(1, Math.min(20, parseInt(rules.batchSize, 10)));
       }
       if (rules.maxScanPages && Number(rules.maxScanPages) > 0) {
-        maxScanPages = Math.max(5, Math.min(50, parseInt(rules.maxScanPages, 10)));
+        maxScanPages = Math.max(5, Math.min(500, parseInt(rules.maxScanPages, 10)));
       }
       keepContentImages = Boolean(rules.keepContentImages);
     } catch (e) {}
@@ -367,7 +367,18 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
           history &&
           (history.status === 'SUCCESS' || history.status.startsWith('SKIPPED') || history.status === 'FAILED');
 
-        if (!isAlreadyProcessed) {
+        if (isAlreadyProcessed) continue;
+
+        // Kiểm tra xem bài viết đã từng được cào bởi bất kỳ nguồn nào khác của cùng website đích chưa
+        const alreadyCrawledSameSite = await this.prisma.ztteam_crawl_history.findFirst({
+          where: {
+            url,
+            status: 'SUCCESS',
+            source: { target_site_id: source.target_site_id }
+          }
+        });
+
+        if (!alreadyCrawledSameSite) {
           unCrawledOnThisPage.push(url);
         }
       }
@@ -425,6 +436,25 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         });
 
         if (history && (history.status === 'SUCCESS' || history.status.startsWith('SKIPPED') || history.status === 'FAILED')) {
+          continue;
+        }
+
+        // Bỏ qua nếu URL này đã được cào bởi bất kỳ nguồn nào khác trên cùng website đích
+        const alreadyCrawledSameSite = await this.prisma.ztteam_crawl_history.findFirst({
+          where: {
+            url,
+            status: 'SUCCESS',
+            source: { target_site_id: source.target_site_id }
+          }
+        });
+
+        if (alreadyCrawledSameSite) {
+          this.logger.log(`[BỎ QUA TRÙNG NGUỒN] URL ${url} đã được xử lý bởi nguồn #${alreadyCrawledSameSite.source_id}. Bỏ qua để tránh bài viết bị gán trùng giữa các Fanpage.`);
+          await this.prisma.ztteam_crawl_history.upsert({
+            where: { source_id_url: { source_id: source.id, url } },
+            create: { source_id: source.id, url, status: 'SKIPPED_DUPLICATE_SITE' },
+            update: { status: 'SKIPPED_DUPLICATE_SITE' },
+          });
           continue;
         }
 

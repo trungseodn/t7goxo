@@ -1,7 +1,7 @@
 {
   "sourceSite": "https://biz1.translatetooldenglish.com",
   "startPage": 1,
-  "endPage": 10,
+  "endPage": 200,
   "perPage": 100,
   "delayMs": 1000,
   "outputJson": "data/history_posts.json",

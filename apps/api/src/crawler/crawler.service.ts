@@ -204,28 +204,36 @@ export class ZTTeamCrawlerService {
         }
       }
 
-      /** Check which pages have ALREADY posted or queued this WP post */
-      const existingAssignments = await this.prisma.ztteam_images.findMany({
-        where: { wp_post_id: wpResult.id.toString() },
-        select: { page_id: true }
+      /**
+       * ZTTeam: CHỐNG TRÙNG LẶP BÀI VIẾT TUYỆT ĐỐI GIỮA CÁC FANPAGE.
+       * Mỗi bài viết (theo WP Post ID hoặc Tiêu đề) chỉ được gán cho DUY NHẤT 1 Fanpage trong toàn hệ thống.
+       * Nếu bài viết đã được xếp lịch hoặc đăng trên bất kỳ Fanpage nào trước đó, tuyệt đối KHÔNG gán thêm cho Fanpage khác.
+       */
+      const alreadyAssignedImage = await this.prisma.ztteam_images.findFirst({
+        where: {
+          OR: [
+            { wp_post_id: wpResult.id.toString(), page_id: { not: null } },
+            { wp_post_title: storyTitle, page_id: { not: null } }
+          ]
+        },
+        include: { page: true }
       });
-      const usedPageIds = new Set(existingAssignments.map(a => a.page_id));
 
-      const existingHistory = await this.prisma.ztteam_image_history.findMany({
+      const alreadyAssignedHistory = await this.prisma.ztteam_image_history.findFirst({
         where: { wp_post_id: wpResult.id.toString() },
-        select: { page_id: true }
+        include: { page: true }
       });
-      existingHistory.forEach(h => usedPageIds.add(h.page_id));
 
-      /** Filter candidate pages that haven't received this post yet */
-      const eligiblePages = candidatePages.filter(p => !usedPageIds.has(p.id));
+      const assignedPageName = alreadyAssignedImage?.page?.name || alreadyAssignedHistory?.page?.name;
 
-      if (eligiblePages.length > 0) {
-        /** Strict Round-Robin: Pick the page that received a post least recently (oldest or null created_at) */
-        let chosenPage = eligiblePages[0];
-        if (eligiblePages.length > 1) {
+      if (alreadyAssignedImage || alreadyAssignedHistory) {
+        this.logger.log(`[CHỐNG TRÙNG BÀI] Bài viết #${wpResult.id} ("${storyTitle}") đã được phân bổ cho Fanpage "${assignedPageName || 'Đã có'}" trước đó. Bỏ qua hoàn toàn, tuyệt đối không gán thêm cho Fanpage khác để đảm bảo các Page không bị trùng bài.`);
+      } else if (candidatePages.length > 0) {
+        /** Round-Robin Độc Quyền: Chọn Fanpage lâu nhất chưa nhận bài mới để phân bổ */
+        let chosenPage = candidatePages[0];
+        if (candidatePages.length > 1) {
           const pageLastAssigned = await Promise.all(
-            eligiblePages.map(async (p) => {
+            candidatePages.map(async (p) => {
               const lastImage = await this.prisma.ztteam_images.findFirst({
                 where: { page_id: p.id },
                 orderBy: { created_at: 'desc' },
@@ -242,16 +250,13 @@ export class ZTTeamCrawlerService {
           chosenPage = pageLastAssigned[0].page;
         }
         targetPages.push(chosenPage);
-        this.logger.log(`[Round-Robin] Assigned story #${wpResult.id} exclusively to Page: ${chosenPage.name} (${chosenPage.id})`);
-      } else if (candidatePages.length === 0) {
+        this.logger.log(`[Round-Robin Độc Quyền] Phân bổ bài viết #${wpResult.id} ("${storyTitle}") duy nhất cho Fanpage: ${chosenPage.name} (${chosenPage.id})`);
+      } else {
         /**
-         * ZTTeam: Nguồn cào này không có Fanpage nào liên kết active.
-         * Tuyệt đối KHÔNG fallback tự ý gán vào Fanpage khác.
-         * Để targetPages rỗng ([]) để hệ thống chuyển sang lưu vào Kho Đăng Thủ Công độc lập (page_id: null).
+         * Nguồn cào này không có Fanpage nào liên kết active.
+         * Chuyển sang lưu vào Kho Đăng Thủ Công độc lập (page_id: null).
          */
         this.logger.log(`Nguồn cào (Target site #${targetSiteId}) không có Fanpage nào liên kết active. Tự động chuyển bài viết sang Kho Đăng Thủ Công.`);
-      } else {
-        this.logger.log(`Story #${wpResult.id} has already been assigned to all matching Fanpages. Skipping duplicate assignment.`);
       }
     }
 
@@ -500,7 +505,7 @@ export class ZTTeamCrawlerService {
         addLinkToComment: data.addLinkToComment !== undefined ? data.addLinkToComment : true,
         batchSize: data.batchSize ? Math.max(1, Math.min(20, Number(data.batchSize))) : 1,
         keepContentImages: Boolean(data.keepContentImages),
-        maxScanPages: data.maxScanPages ? Math.max(1, Math.min(50, Number(data.maxScanPages))) : 20,
+        maxScanPages: data.maxScanPages ? Math.max(1, Math.min(500, Number(data.maxScanPages))) : 200,
       };
       return await this.prisma.ztteam_crawl_sources.create({
         data: {
@@ -538,7 +543,7 @@ export class ZTTeamCrawlerService {
       extractRules.keepContentImages = Boolean(data.keepContentImages);
     }
     if (data.maxScanPages !== undefined) {
-      extractRules.maxScanPages = Math.max(1, Math.min(50, Number(data.maxScanPages)));
+      extractRules.maxScanPages = Math.max(1, Math.min(500, Number(data.maxScanPages)));
     }
 
     return this.prisma.ztteam_crawl_sources.update({

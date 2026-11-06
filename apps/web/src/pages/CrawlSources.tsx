@@ -50,7 +50,7 @@ export default function WordPressSites() {
   const [sourceCategory, setSourceCategory] = useState('');
   const [frequencyCron, setFrequencyCron] = useState('0 */6 * * *');
   const [batchSize, setBatchSize] = useState<number>(1);
-  const [maxScanPages, setMaxScanPages] = useState<number>(20);
+  const [maxScanPages, setMaxScanPages] = useState<number>(200);
   const [keepContentImages, setKeepContentImages] = useState(false);
   const [scanningSourceId, setScanningSourceId] = useState<string | null>(null);
 
@@ -224,7 +224,7 @@ export default function WordPressSites() {
     try {
       const rules = JSON.parse(source.extract_rules_json || '{}');
       setBatchSize(rules.batchSize ? Number(rules.batchSize) : 1);
-      setMaxScanPages(rules.maxScanPages ? Number(rules.maxScanPages) : 20);
+      setMaxScanPages(rules.maxScanPages ? Number(rules.maxScanPages) : 200);
       setKeepContentImages(Boolean(rules.keepContentImages));
     } catch (e) {
       setBatchSize(1);
@@ -747,9 +747,9 @@ export default function WordPressSites() {
                                     <input
                                       type="number"
                                       min={1}
-                                      max={50}
+                                      max={500}
                                       value={maxScanPages}
-                                      onChange={(e) => setMaxScanPages(Math.max(1, Math.min(50, parseInt(e.target.value) || 20)))}
+                                      onChange={(e) => setMaxScanPages(Math.max(1, Math.min(500, parseInt(e.target.value) || 200)))}
                                       className="w-16 py-1 px-2.5 rounded-full bg-fb-surface-hover text-fb-text text-xs text-center font-bold focus:outline-none focus:ring-2 focus:ring-fb-blue border border-white/10"
                                       required
                                     />
@@ -837,7 +837,7 @@ export default function WordPressSites() {
                                     {(() => {
                                       try {
                                         const r = JSON.parse(source.extract_rules_json || '{}');
-                                        return r.maxScanPages || 20;
+                                        return r.maxScanPages || 200;
                                       } catch (e) { return 20; }
                                     })()} trang
                                   </span>
