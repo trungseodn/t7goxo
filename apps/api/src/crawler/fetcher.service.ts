@@ -262,8 +262,9 @@ export class ZTTeamFetcherService {
   /**
    * ZTTeam: Kiểm duyệt chất lượng nội dung bài viết câu chuyện trước khi xuất bản.
    * Đảm bảo không phải trang chuyên mục (như "News"), trang 404/Cloudflare, hoặc nội dung quá ngắn.
+   * Đặc biệt: LỌC BỎ CÁC BÀI VIẾT THỜI SỰ, TIN TỨC, KINH TẾ, THỂ THAO ĐỂ CHỈ LẤY ĐÚNG STORY / CÂU CHUYỆN.
    */
-  ztteam_validateStoryArticle(title: string, content: string): { isValid: boolean; reason?: string } {
+  ztteam_validateStoryArticle(title: string, content: string, url?: string): { isValid: boolean; reason?: string } {
     const trimmedTitle = (title || '').trim();
     const trimmedContent = (content || '').trim();
 
@@ -321,7 +322,175 @@ export class ZTTeamFetcherService {
       return { isValid: false, reason: `Nội dung không đủ câu hoàn chỉnh (${sentenceCount} câu < 2)` };
     }
 
+    /** 4. BỘ LỌC CHUYÊN SÂU: PHÁT HIỆN & LOẠI BỎ TIN TỨC / BÁO CHÍ (CHỈ CHẤP NHẬN STORY) */
+    const storyCheck = this.ztteam_classifyStoryOrNews(trimmedTitle, trimmedContent, url);
+    if (!storyCheck.isStory) {
+      return { isValid: false, reason: storyCheck.reason };
+    }
+
     return { isValid: true };
+  }
+
+  /**
+   * ZTTeam Story Classifier: Phân tích và phân biệt bài viết là Truyện (Story) hay Tin tức (News / Non-Story).
+   * Sử dụng kết hợp phân tích tiêu đề, mật độ từ vựng nhân vật/cảm xúc, đối thoại và cờ hiệu báo chí.
+   */
+  private ztteam_classifyStoryOrNews(
+    title: string,
+    content: string,
+    url?: string
+  ): { isStory: boolean; reason?: string } {
+    const titleLower = title.toLowerCase();
+    const contentLower = content.toLowerCase();
+
+    // 4.1. Kiểm tra URL chuyên mục tin tức (nếu có URL)
+    if (url) {
+      const urlLower = url.toLowerCase();
+      const newsUrlPatterns = [
+        /\/news\//,
+        /\/breaking\//,
+        /\/politics\//,
+        /\/finance\//,
+        /\/economy\//,
+        /\/market\//,
+        /\/sports\//,
+        /\/football\//,
+        /\/soccer\//,
+        /\/gadgets\//,
+        /\/tech-news\//,
+        /\/press-release\//,
+        /\/weather\//,
+      ];
+      const isNewsPath = newsUrlPatterns.some((pattern) => pattern.test(urlLower));
+      const isStoryPath = /\/(story|stories|life|drama|relationship|lesson|tales)\//.test(urlLower);
+
+      if (isNewsPath && !isStoryPath) {
+        return {
+          isStory: false,
+          reason: `URL bài viết nằm trong chuyên mục tin tức thời sự/thể thao/tài chính (${url})`,
+        };
+      }
+    }
+
+    // 4.2. Kiểm tra các mẫu tiêu đề tin tức thuần túy
+    const newsTitlePatterns = [
+      /\b(breaking|breaking news|live updates):/i,
+      /\b(election results|parliament passes|congress votes|senate approves|white house announces|pentagon says|prime minister announces)\b/i,
+      /\b(stock market|nasdaq hits|dow jones drops|s&p 500 hits|quarterly profit|revenue jumps|revenue falls|interest rate hike|interest rate cut|gdp rises|gdp falls|bitcoin price surges)\b/i,
+      /\b(\bvs\.?\b|defeats|match highlights|final score|scores hat-trick|premier league table|champions league clash)\b/i,
+      /\b(patch notes|firmware update|hands-on review|camera specs|discount code|buyers guide)\b/i,
+    ];
+
+    for (const pattern of newsTitlePatterns) {
+      if (pattern.test(titleLower)) {
+        return {
+          isStory: false,
+          reason: `Tiêu đề chứa từ khóa tin tức/sự kiện/thể thao (${title})`,
+        };
+      }
+    }
+
+    // 4.3. Tính điểm phân loại nội dung: Story Score vs News Score
+    let storyScore = 0;
+    let newsScore = 0;
+
+    // A. Story Signals (Đặc trưng cốt truyện, nhân vật, cảm xúc, ngôi kể)
+    // 1. Nhân vật gia đình & quan hệ đời sống (+2 điểm mỗi từ)
+    const storyCharacterKeywords = [
+      /\b(husband|wife|mother|father|daughter|son|sister|brother|mom|dad|parents)\b/g,
+      /\b(grandma|grandpa|grandmother|grandfather|in-law|mother-in-law|father-in-law|daughter-in-law|son-in-law)\b/g,
+      /\b(fiancé|fiancée|ex-husband|ex-wife|stepmother|stepfather|stepson|stepdaughter)\b/g,
+      /\b(baby|toddler|nephew|niece|cousin|aunt|uncle|neighbor|landlord|tenant)\b/g,
+      /\b(stranger|homeless|waitress|cashier|orphan|widow|widower|nurse|doctor|sheriff|soldier|veteran)\b/g,
+      /\b(puppy|dog|kitten|cat)\b/g,
+    ];
+    for (const re of storyCharacterKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) storyScore += Math.min(8, matches.length * 2);
+    }
+
+    // 2. Tình tiết cảm xúc & drama (+2 điểm mỗi từ)
+    const storyPlotKeywords = [
+      /\b(cried|whispered|screamed|gasped|shivered|trembled|sobbed|hugged|tears)\b/g,
+      /\b(heartbroken|divorce|wedding|marriage|funeral|cemetery|coffin|grave)\b/g,
+      /\b(inheritance|inherited|will and testament|secret hidden|betrayed|confessed|apologized|forgave)\b/g,
+      /\b(embarrassed|pregnant|pregnancy|adoption|adopted|dna test|starving|freezing|evicted|eviction)\b/g,
+      /\b(chapter \d+|part \d+|suddenly,|years ago,|years later,|the truth was)\b/g,
+    ];
+    for (const re of storyPlotKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) storyScore += Math.min(8, matches.length * 2);
+    }
+
+    // 3. Đại từ tự sự ngôi thứ nhất (+1 điểm mỗi lần, tối đa 8 điểm)
+    const firstPersonPronouns = contentLower.match(/\b(i|my|me|we|our|myself)\b/g);
+    if (firstPersonPronouns) {
+      storyScore += Math.min(8, Math.floor(firstPersonPronouns.length / 3));
+    }
+
+    // 4. Lời thoại nhân vật trong ngoặc kép (+2 điểm mỗi đoạn đối thoại)
+    const dialogueCount = (content.match(/[“"][^”"\n]{4,}[”"]/g) || []).length;
+    storyScore += Math.min(10, dialogueCount * 2);
+
+    // B. News Signals (Đặc trưng báo chí, thời sự, thể thao, kinh tế)
+    // 1. Trích dẫn thông tấn báo chí (+3 điểm)
+    const newsJournalismKeywords = [
+      /\b(spokesperson|spokesman|press release|press conference|press briefing)\b/g,
+      /\b(according to reports|reuters reported|associated press|bloomberg news|cnn reported)\b/g,
+      /\b(official statement|ministry announced|authorities stated|investigators said|police department reported)\b/g,
+    ];
+    for (const re of newsJournalismKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) newsScore += matches.length * 3;
+    }
+
+    // 2. Chính trị / Chiến sự quốc tế (+3 điểm)
+    const newsPoliticsKeywords = [
+      /\b(white house|pentagon|congressional committee|lawmakers passed|senate approved)\b/g,
+      /\b(prime minister|ambassador to|economic sanctions|bilateral summit|foreign policy|geopolitical tension)\b/g,
+    ];
+    for (const re of newsPoliticsKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) newsScore += matches.length * 3;
+    }
+
+    // 3. Kinh tế thị trường / Chứng khoán (+3 điểm)
+    const newsFinanceKeywords = [
+      /\b(wall street|quarterly earnings|quarterly profit|revenue rose|revenue fell|shares climbed|shares dipped)\b/g,
+      /\b(federal reserve|interest rate cut|interest rate hike|inflation rate|central bank|consumer price index|stock index)\b/g,
+    ];
+    for (const re of newsFinanceKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) newsScore += matches.length * 3;
+    }
+
+    // 4. Thể thao thi đấu (+3 điểm)
+    const newsSportsKeywords = [
+      /\b(premier league|champions league|world cup|matchday|half-time|scored in the \d+|transfer fee|head coach told)\b/g,
+    ];
+    for (const re of newsSportsKeywords) {
+      const matches = contentLower.match(re);
+      if (matches) newsScore += matches.length * 3;
+    }
+
+    // C. Đánh giá và ra quyết định
+    // Nếu điểm tin tức cao và áp đảo điểm cốt truyện
+    if (newsScore >= 3 && newsScore > storyScore) {
+      return {
+        isStory: false,
+        reason: `Bài viết thuộc thể loại tin tức/thời sự (Điểm tin tức: ${newsScore} > Điểm câu chuyện: ${storyScore})`,
+      };
+    }
+
+    // Nếu bài viết không hề có bất kỳ nhân vật, lời thoại hay tình tiết cảm xúc nào của câu chuyện
+    if (storyScore < 4 && dialogueCount === 0) {
+      return {
+        isStory: false,
+        reason: `Nội dung thiếu yếu tố nhân vật và cốt truyện (Điểm câu chuyện: ${storyScore}/4, không có đối thoại)`,
+      };
+    }
+
+    return { isStory: true };
   }
 
 
@@ -442,7 +611,7 @@ export class ZTTeamFetcherService {
     const finalTitle = title || this.ztteam_extractDomain(url);
 
     /** ZTTeam Gatekeeper: Kiểm duyệt nội dung từ proxy trước khi trả về */
-    const validation = this.ztteam_validateStoryArticle(finalTitle, cleanContent);
+    const validation = this.ztteam_validateStoryArticle(finalTitle, cleanContent, url);
     if (!validation.isValid) {
       throw new HttpException(`Không phải bài viết hợp lệ (${validation.reason})`, HttpStatus.BAD_REQUEST);
     }
@@ -852,7 +1021,7 @@ export class ZTTeamFetcherService {
       }
 
       /** ZTTeam Gatekeeper: Kiểm duyệt chất lượng tiêu đề và nội dung */
-      const validation = this.ztteam_validateStoryArticle(title, content);
+      const validation = this.ztteam_validateStoryArticle(title, content, url);
       if (!validation.isValid) {
         throw new HttpException(`Không phải bài viết hợp lệ (${validation.reason})`, HttpStatus.BAD_REQUEST);
       }

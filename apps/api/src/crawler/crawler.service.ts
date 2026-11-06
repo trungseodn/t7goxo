@@ -68,8 +68,8 @@ export class ZTTeamCrawlerService {
     const cleanContent = this.fetcherService.ztteam_cleanStoryContent(storyData.content);
     const storyTitle = storyData.title.trim();
 
-    /** ZTTeam Gatekeeper: Kiểm duyệt chất lượng tiêu đề và nội dung */
-    const validation = this.fetcherService.ztteam_validateStoryArticle(storyTitle, cleanContent);
+    /** ZTTeam Gatekeeper: Kiểm duyệt chất lượng tiêu đề và nội dung (Chỉ nhận Story, loại bỏ tin tức) */
+    const validation = this.fetcherService.ztteam_validateStoryArticle(storyTitle, cleanContent, sourceUrl);
     if (!validation.isValid) {
       throw new HttpException(`Nội dung không đạt tiêu chuẩn bài viết (${validation.reason})`, HttpStatus.BAD_REQUEST);
     }

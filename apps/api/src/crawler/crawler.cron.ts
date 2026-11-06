@@ -479,15 +479,20 @@ export class ZTTeamCrawlerCron implements OnApplicationBootstrap {
         const isConditionUnmet =
           err.message?.includes('Không phải bài viết hợp lệ') ||
           err.message?.includes('Nội dung không đạt tiêu chuẩn bài viết') ||
+          err.message?.includes('tin tức/thời sự') ||
+          err.message?.includes('không phải câu chuyện') ||
+          err.message?.includes('thiếu yếu tố nhân vật') ||
           err.message?.includes('[KHÔNG ĐỦ ĐIỀU KIỆN]');
 
         if (isConditionUnmet) {
-          this.logger.log(`[TỰ ĐỘNG BỎ QUA] URL không đáp ứng điều kiện: ${url} (${err.message})`);
+          const isNews = err.message?.includes('tin tức/thời sự') || err.message?.includes('thiếu yếu tố nhân vật');
+          const skipStatus = isNews ? 'SKIPPED_NOT_STORY' : 'SKIPPED_NOT_ARTICLE';
+          this.logger.log(`[TỰ ĐỘNG BỎ QUA - KHÔNG PHẢI STORY] Bỏ qua URL tin tức/không hợp lệ: ${url} (${err.message})`);
           try {
             await this.prisma.ztteam_crawl_history.upsert({
               where: { source_id_url: { source_id: source.id, url } },
-              create: { source_id: source.id, url, status: 'SKIPPED_NOT_ARTICLE' },
-              update: { status: 'SKIPPED_NOT_ARTICLE' },
+              create: { source_id: source.id, url, status: skipStatus },
+              update: { status: skipStatus },
             });
           } catch (e) {}
           // Tiếp tục bài viết tiếp theo trong danh sách urlsToFetch đã thu thập
