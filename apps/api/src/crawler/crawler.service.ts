@@ -155,7 +155,7 @@ export class ZTTeamCrawlerService {
     /** ZTTeam: Kiểm tra xem Website WordPress đích có đang bật Chế độ Đăng Thủ Công không */
     const targetSiteConfig = await this.prisma.ztteam_target_sites.findUnique({
       where: { id: targetSiteId },
-      select: { is_manual: true }
+      select: { is_manual: true, wp_url: true }
     });
 
     if (targetSiteConfig?.is_manual) {
