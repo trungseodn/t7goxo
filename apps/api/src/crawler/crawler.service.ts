@@ -206,27 +206,35 @@ export class ZTTeamCrawlerService {
 
       /**
        * ZTTeam: CHỐNG TRÙNG LẶP BÀI VIẾT TUYỆT ĐỐI GIỮA CÁC FANPAGE.
-       * Mỗi bài viết (theo WP Post ID hoặc Tiêu đề) chỉ được gán cho DUY NHẤT 1 Fanpage trong toàn hệ thống.
+       * Mỗi bài viết (theo WP Post URL, hoặc Tiêu đề, hoặc WP Post ID trên cùng website đích)
+       * chỉ được gán cho DUY NHẤT 1 Fanpage trong toàn hệ thống.
        * Nếu bài viết đã được xếp lịch hoặc đăng trên bất kỳ Fanpage nào trước đó, tuyệt đối KHÔNG gán thêm cho Fanpage khác.
        */
+      let siteOrigin = '';
+      try {
+        if (targetSiteConfig?.wp_url) {
+          siteOrigin = new URL(targetSiteConfig.wp_url).origin;
+        }
+      } catch (e) {}
+
       const alreadyAssignedImage = await this.prisma.ztteam_images.findFirst({
         where: {
+          page_id: { not: null },
           OR: [
-            { wp_post_id: wpResult.id.toString(), page_id: { not: null } },
-            { wp_post_title: storyTitle, page_id: { not: null } }
+            { wp_post_url: wpResult.url },
+            { wp_post_title: storyTitle },
+            ...(siteOrigin ? [{
+              wp_post_id: wpResult.id.toString(),
+              wp_post_url: { contains: siteOrigin }
+            }] : [])
           ]
         },
         include: { page: true }
       });
 
-      const alreadyAssignedHistory = await this.prisma.ztteam_image_history.findFirst({
-        where: { wp_post_id: wpResult.id.toString() },
-        include: { page: true }
-      });
+      const assignedPageName = alreadyAssignedImage?.page?.name;
 
-      const assignedPageName = alreadyAssignedImage?.page?.name || alreadyAssignedHistory?.page?.name;
-
-      if (alreadyAssignedImage || alreadyAssignedHistory) {
+      if (alreadyAssignedImage) {
         this.logger.log(`[CHỐNG TRÙNG BÀI] Bài viết #${wpResult.id} ("${storyTitle}") đã được phân bổ cho Fanpage "${assignedPageName || 'Đã có'}" trước đó. Bỏ qua hoàn toàn, tuyệt đối không gán thêm cho Fanpage khác để đảm bảo các Page không bị trùng bài.`);
       } else if (candidatePages.length > 0) {
         /** Round-Robin Độc Quyền: Chọn Fanpage lâu nhất chưa nhận bài mới để phân bổ */

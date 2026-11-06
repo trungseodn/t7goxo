@@ -46,6 +46,7 @@ export default function AIFactory() {
   const [limit, setLimit] = useState(24);
   const [isPosting, setIsPosting] = useState<Record<string, boolean>>({});
   const [isRetryingFailedVideos, setIsRetryingFailedVideos] = useState(false);
+  const [isDistributingManual, setIsDistributingManual] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { ztteam_showToast, ztteam_showConfirm } = useUIStore();
@@ -219,6 +220,29 @@ export default function AIFactory() {
       ztteam_showToast(error.response?.data?.message || 'Lỗi khi đưa video về hàng chờ', 'error');
     } finally {
       setIsRetryingFailedVideos(false);
+    }
+  };
+
+  /** Phân bổ các bài viết trong Kho Đăng Thủ Công cho các Fanpage và đưa vào hàng đợi tạo video */
+  const ztteam_distributeManualPosts = async (idsToDistribute?: string[]) => {
+    const isAll = !idsToDistribute || idsToDistribute.length === 0;
+    const countText = isAll ? `toàn bộ ${counts.manual || total || ''}` : `${idsToDistribute.length}`;
+    const confirmed = await ztteam_showConfirm(
+      'Phân bổ bài viết vào Fanpage',
+      `Bạn có chắc chắn muốn phân bổ ${countText} bài viết từ Kho Đăng Thủ Công vào các Fanpage đang hoạt động và đưa vào hàng đợi tạo Video Reel không?`
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsDistributingManual(true);
+      const res = await api.post('image/distribute-manual-posts', { ids: idsToDistribute });
+      ztteam_showToast(res.data?.message || 'Đã phân bổ bài viết vào Fanpage và đưa vào hàng đợi video thành công!', 'success');
+      setSelectedIds([]);
+      ztteam_loadItems();
+    } catch (error: any) {
+      ztteam_showToast(error.response?.data?.message || 'Lỗi khi phân bổ bài viết', 'error');
+    } finally {
+      setIsDistributingManual(false);
     }
   };
 
@@ -513,6 +537,46 @@ export default function AIFactory() {
                 {isRetryingFailedVideos ? 'sync' : 'replay_circle_filled'}
               </span>
               <span>⚡ Đưa Tất Cả Video Lỗi Về Hàng Chờ</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/** Banner Hành Động Riêng Cho Tab Kho Đăng Thủ Công */}
+      {filterPage === 'MANUAL' && (
+        <div className="bg-gradient-to-r from-emerald-950/40 via-fb-surface to-cyan-950/30 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30 shadow-inner">
+              <span className="material-symbols-outlined text-2xl">call_split</span>
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                <span>Phân Bổ Bài Viết Kho Thủ Công Vào Fanpage</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {counts.manual || total || 0} bài trong kho
+                </span>
+              </h3>
+              <p className="text-xs text-fb-text-muted mt-1 leading-relaxed">
+                Tự động gán các bài viết trong kho cho các Fanpage đang hoạt động (Round-Robin công bằng) và đưa thẳng vào hàng đợi tạo Video Reel tự động.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 justify-end">
+            <button
+              type="button"
+              onClick={() => ztteam_distributeManualPosts(selectedIds.length > 0 ? selectedIds : undefined)}
+              disabled={isDistributingManual || (counts.manual === 0 && total === 0)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 via-fb-blue to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white rounded-xl text-xs font-black transition-all shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className={`material-symbols-outlined text-[18px] ${isDistributingManual ? 'animate-spin' : ''}`}>
+                {isDistributingManual ? 'sync' : 'bolt'}
+              </span>
+              <span>
+                {selectedIds.length > 0
+                  ? `⚡ Phân Bổ ${selectedIds.length} Bài Đã Chọn & Tạo Video`
+                  : '⚡ Phân Bổ Toàn Bộ Vào Fanpage & Tạo Video'}
+              </span>
             </button>
           </div>
         </div>

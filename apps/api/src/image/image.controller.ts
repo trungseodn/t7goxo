@@ -147,6 +147,137 @@ export class ZTTeamImageController {
     };
   }
 
+  /**
+   * ZTTeam: Phân bổ các bài viết trong Kho Đăng Thủ Công cho các Fanpage và đưa vào hàng đợi tạo Video Reel
+   * POST /api/image/distribute-manual-posts
+   */
+  @Post('distribute-manual-posts')
+  @UseGuards(ZTTeamAuthGuard)
+  async ztteam_distributeManualPosts(
+    @Body() body: { ids?: string[]; targetPageId?: string }
+  ) {
+    const where: any = {
+      page_id: null,
+      is_posted: false,
+    };
+
+    if (body?.ids && Array.isArray(body.ids) && body.ids.length > 0) {
+      where.id = { in: body.ids };
+    }
+
+    const manualPosts = await this.prisma.ztteam_images.findMany({
+      where,
+      orderBy: { created_at: 'asc' },
+    });
+
+    if (manualPosts.length === 0) {
+      return {
+        success: true,
+        count: 0,
+        message: 'Kho Đăng Thủ Công hiện không có bài viết nào cần phân bổ.',
+      };
+    }
+
+    let activePages = await this.prisma.ztteam_pages.findMany({
+      where: { is_active: true },
+      include: {
+        _count: {
+          select: { images: { where: { is_posted: false } } },
+        },
+      },
+    });
+
+    if (activePages.length === 0) {
+      throw new BadRequestException('Không tìm thấy Fanpage nào đang hoạt động (Active) để phân bổ bài.');
+    }
+
+    if (body?.targetPageId) {
+      const specificPage = activePages.find((p) => p.id === body.targetPageId);
+      if (!specificPage) {
+        throw new BadRequestException('Fanpage chỉ định không tồn tại hoặc đang bị tắt.');
+      }
+      activePages = [specificPage];
+    }
+
+    // Đếm số bài chưa đăng và thời gian nhận bài gần nhất của từng Fanpage
+    const pageAssignments = await Promise.all(
+      activePages.map(async (page) => {
+        const lastImage = await this.prisma.ztteam_images.findFirst({
+          where: { page_id: page.id },
+          orderBy: { created_at: 'desc' },
+          select: { created_at: true },
+        });
+        return {
+          page,
+          unpostedCount: page._count.images,
+          lastAssignedAt: lastImage?.created_at ? new Date(lastImage.created_at).getTime() : 0,
+        };
+      })
+    );
+
+    let distributedCount = 0;
+    const distributedDetails: any[] = [];
+
+    for (const post of manualPosts) {
+      // Sắp xếp ưu tiên: Page ít bài chờ xuất bản nhất -> nếu bằng nhau thì Page lâu nhất chưa nhận bài mới
+      pageAssignments.sort((a, b) => {
+        if (a.unpostedCount !== b.unpostedCount) {
+          return a.unpostedCount - b.unpostedCount;
+        }
+        return a.lastAssignedAt - b.lastAssignedAt;
+      });
+
+      const chosen = pageAssignments[0];
+      const chosenPage = chosen.page;
+      const engine = (chosenPage as any)?.video_engine || 'hook_image';
+
+      // Chuẩn hóa caption CTA theo cấu hình của Page
+      let fanpageCaption = post.ai_caption || '';
+      if (chosenPage.add_link_to_caption && post.wp_post_url && !fanpageCaption.includes(post.wp_post_url)) {
+        fanpageCaption += `\n\n👉 Read full story here: ${post.wp_post_url}`;
+      }
+
+      const updated = await this.prisma.ztteam_images.update({
+        where: { id: post.id },
+        data: {
+          page_id: chosenPage.id,
+          ai_caption: fanpageCaption || undefined,
+          video_status: 'PENDING',
+          error_log: null,
+          status: 'COMPLETED',
+          updated_at: new Date(),
+        },
+      });
+
+      this.eventEmitter.emit('image.updated', updated);
+
+      // Kích hoạt render video Reel ngay lập tức nếu dùng hook_image hoặc text_story
+      if (engine === 'hook_image' || engine === 'text_story') {
+        this.hookVideoService.ztteam_renderHookVideo(post.id).catch((err) => {
+          this.logger.error(`[Distribute Hook/Text Story Video Error] ${post.id}: ${err.message}`);
+        });
+      }
+
+      chosen.unpostedCount += 1;
+      chosen.lastAssignedAt = Date.now();
+      distributedCount++;
+      distributedDetails.push({
+        postId: post.id,
+        postTitle: post.wp_post_title,
+        assignedPageName: chosenPage.name,
+      });
+
+      this.logger.log(`[Manual Distribution] Đã phân bổ bài #${post.wp_post_id} ("${post.wp_post_title.substring(0, 40)}...") cho Fanpage: ${chosenPage.name}`);
+    }
+
+    return {
+      success: true,
+      count: distributedCount,
+      message: `Đã phân bổ thành công ${distributedCount} bài viết vào các Fanpage và đưa vào hàng đợi tạo Video Reel.`,
+      details: distributedDetails,
+    };
+  }
+
   @Get('list')
   @UseGuards(ZTTeamAuthGuard)
   async ztteam_listImages(
