@@ -332,8 +332,15 @@ export class ZTTeamFetcherService {
   }
 
   /**
-   * ZTTeam Story Classifier: Phân tích và phân biệt bài viết là Truyện (Story) hay Tin tức (News / Non-Story).
-   * Sử dụng kết hợp phân tích tiêu đề, mật độ từ vựng nhân vật/cảm xúc, đối thoại và cờ hiệu báo chí.
+   * ZTTeam Story Classifier (Deep Semantic Reader & Filter):
+   * Đọc bài viết trước khi cào và chắc chắn 100% chỉ cào bài thuộc về Story (truyện tâm sự đời sống, gia đình, drama, moral lesson).
+   * Loại bỏ triệt để:
+   * 1. Tin tai nạn, thảm họa, rơi máy bay/trực thăng, va chạm giao thông chết người (crashes, fatal collisions).
+   * 2. Tin tìm kiếm người mất tích, cứu hộ cứu nạn (missing person searches, underwater police).
+   * 3. Tin cáo phó, chia buồn, tưởng niệm người mất (obituaries, gone too soon, remembered as, passed away).
+   * 4. Bản tin y khoa, phẫu thuật dị tật, bệnh án hiếm, cập nhật ung thư (conjoined twins, rare condition, surgeries).
+   * 5. Tin thể thao, cầu thủ tử nạn, bóng đá, chuyển nhượng (footballer, goalkeeper, tournament).
+   * 6. Tin chính trị, thời sự, kinh tế tài chính, chứng khoán, review sản phẩm.
    */
   private ztteam_classifyStoryOrNews(
     title: string,
@@ -343,7 +350,7 @@ export class ZTTeamFetcherService {
     const titleLower = title.toLowerCase();
     const contentLower = content.toLowerCase();
 
-    // 4.1. Kiểm tra URL chuyên mục tin tức (nếu có URL)
+    // 1. Kiểm tra URL chuyên mục tin tức (nếu có URL)
     if (url) {
       const urlLower = url.toLowerCase();
       const newsUrlPatterns = [
@@ -372,125 +379,337 @@ export class ZTTeamFetcherService {
       }
     }
 
-    // 4.2. Kiểm tra các mẫu tiêu đề tin tức thuần túy
-    const newsTitlePatterns = [
-      /\b(breaking|breaking news|live updates):/i,
-      /\b(election results|parliament passes|congress votes|senate approves|white house announces|pentagon says|prime minister announces)\b/i,
-      /\b(stock market|nasdaq hits|dow jones drops|s&p 500 hits|quarterly profit|revenue jumps|revenue falls|interest rate hike|interest rate cut|gdp rises|gdp falls|bitcoin price surges)\b/i,
-      /\b(\bvs\.?\b|defeats|match highlights|final score|scores hat-trick|premier league table|champions league clash)\b/i,
-      /\b(patch notes|firmware update|hands-on review|camera specs|discount code|buyers guide)\b/i,
+    // 2. BỘ QUY TẮC PHỦ ĐỊNH TIÊU ĐỀ TUYỆT ĐỐI (STRICT TITLE DISQUALIFIERS)
+    // Nếu tiêu đề khớp với bất kỳ mẫu tin tức, tai nạn, mất tích, cáo phó, y tế nào dưới đây -> LOẠI NGAY LẬP TỨC
+    const strictTitleDisqualifiers: { pattern: RegExp; label: string }[] = [
+      // 2.1 Tai nạn, thảm họa, va chạm giao thông, rơi máy bay/trực thăng
+      {
+        pattern: /\b(?:jet|airplane|plane|helicopter|car|bus|truck|vehicle|train|boat|ship|yacht|double-decker)\s+(?:crash|collision|wreck|accident|plunge|disaster)\b/i,
+        label: 'Tin tai nạn phương tiện (máy bay, trực thăng, xe buýt, tàu thuyền)'
+      },
+      {
+        pattern: /\b(?:fatal|tragic|horrific|deadly)\s+(?:crash|collision|accident|fall|plunge|wreck|disaster|double-decker)\b/i,
+        label: 'Tin tai nạn chết người/thảm họa thảm khốc'
+      },
+      {
+        pattern: /\b(?:claims\s+life\s+of|claimed\s+the\s+life\s+of|claim\s+the\s+life\s+of|lives\s+claimed)\b/i,
+        label: 'Tin tức cướp đi sinh mạng người khác'
+      },
+      {
+        pattern: /\b(?:killed\s+in\s+(?:a\s+)?(?:crash|accident|collision|fire|blast|explosion|disaster))\b/i,
+        label: 'Tin tử nạn trong tai nạn/cháy nổ'
+      },
+      {
+        pattern: /\b(?:lost\s+in\s+.*(?:crash|collision|accident))\b/i,
+        label: 'Tin người thiệt mạng trong tai nạn'
+      },
+      {
+        pattern: /\b(?:died\s+from\s+chest\s+trauma|died\s+after\s+horrific|dies\s+after\s+horrific|dies\s+following\s+horrific)\b/i,
+        label: 'Tin tử vong do chấn thương sau va chạm'
+      },
+      {
+        pattern: /\b(?:on-(?:pitch|field)\s+collision|mid-game\s+collision)\b/i,
+        label: 'Tin va chạm chấn thương trên sân cỏ'
+      },
+      {
+        pattern: /\b(?:tragic\s+(?:fifth-floor|balcony|cliff|roof|story|window)\s+fall)\b/i,
+        label: 'Tin tai nạn ngã từ tầng cao/ban công'
+      },
+      {
+        pattern: /\b(?:drowned\s+at\s+sea|drowned\s+in|missing\s+at\s+sea)\b/i,
+        label: 'Tin đuối nước/mất tích trên biển'
+      },
+      {
+        pattern: /\b(?:pilot\s+lost|pilot\s+killed|aviation\s+executive.*survive)\b/i,
+        label: 'Tin tử nạn phi công/hàng không'
+      },
+      {
+        pattern: /\b(?:cause\s+of\s+death\s+revealed|autopsy\s+reveals)\b/i,
+        label: 'Tin công bố nguyên nhân tử vong/khám nghiệm tử thi'
+      },
+      {
+        pattern: /\b(?:fatal\s+\d+-story\s+plunge|fatal\s+plunge)\b/i,
+        label: 'Tin rơi từ tầng cao tử nạn'
+      },
+
+      // 2.2 Người mất tích & Chiến dịch tìm kiếm của cảnh sát
+      {
+        pattern: /\b(?:missing\s+person|search\s+for\s+missing|still\s+missing|vanished\s+without\s+a\s+trace|disappeared\s+without\s+a\s+trace)\b/i,
+        label: 'Tin tìm kiếm người mất tích không dấu vết'
+      },
+      {
+        pattern: /\b(?:\d+\s+(?:days|weeks|months|years)\s+without\s+a\s+trace)\b/i,
+        label: 'Tin mất tích nhiều ngày không dấu vết'
+      },
+      {
+        pattern: /\b(?:desperate\s+search\s+for\s+missing|search\s+intensifies\s+for)\b/i,
+        label: 'Tin mở rộng chiến dịch tìm kiếm người mất tích'
+      },
+      {
+        pattern: /\b(?:underwater\s+police\s+teams|sonar\s+teams|search\s+ends\s+without\s+answers)\b/i,
+        label: 'Tin cảnh sát lặn tìm kiếm người mất tích'
+      },
+      {
+        pattern: /\b(?:missing\s+(?:\d+-year-old|dog\s+walker|fisherman|fishermen|hiker|swimmer|teen|toddler|elderly))\b/i,
+        label: 'Tin mất tích theo nhân dạng/nghề nghiệp'
+      },
+      {
+        pattern: /\b(?:scour\s+canal\s+after\s+his\s+pet\s+is\s+found\s+alone)\b/i,
+        label: 'Tin tìm kiếm người mất tích sau khi tìm thấy thú cưng'
+      },
+
+      // 2.3 Cáo phó, Tưởng niệm, Chia buồn tử nạn
+      {
+        pattern: /\b(?:gone\s+too\s+soon|life\s+was\s+cut\s+short|life\s+cut\s+short)\b/i,
+        label: 'Tin tưởng niệm người ra đi quá sớm (Gone too soon)'
+      },
+      {
+        pattern: /\b(?:remembered\s+as\s+a\s+["“']?ray\s+of\s+sunshine["”']?|remembered\s+as\s+a)\b/i,
+        label: 'Tin tưởng niệm người đã khuất'
+      },
+      {
+        pattern: /\b(?:the\s+remarkable\s+(?:life|journey)\s+of\s+[A-Z][a-z]+)\b/i,
+        label: 'Tin phóng sự tiểu sử người nổi tiếng/quá cố'
+      },
+      {
+        pattern: /\b(?:parents\s+mourn\s+\d+-year-old|parents\s+mourn\s+[A-Z][a-z]+|family\s+mourns\s+[A-Z][a-z]+)\b/i,
+        label: 'Tin gia đình đau buồn trước sự ra đi của con/người thân'
+      },
+      {
+        pattern: /\b(?:passed\s+away\s+at\s+age|breaks\s+silence\s+after\s+(?:tragic\s+)?death)\b/i,
+        label: 'Tin qua đời/chia buồn sau cái chết thương tâm'
+      },
+      {
+        pattern: /\b(?:rest\s+in\s+peace|in\s+loving\s+memory\s+of|heartbreaking\s+tributes\s+to)\b/i,
+        label: 'Tin phân ưu tưởng niệm'
+      },
+      {
+        pattern: /\b(?:leaves\s+behind\s+(?:young\s+wife|loving\s+family|children|husband))\b/i,
+        label: 'Tin người qua đời để lại vợ trẻ/con nhỏ'
+      },
+      {
+        pattern: /\b(?:should\s+have\s+been\s+back\s+in\s+class\s*—\s*\d+-year-old)\b/i,
+        label: 'Tin tưởng niệm học sinh tử nạn'
+      },
+
+      // 2.4 Bản tin Y tế, Bệnh án hiếm, Dị tật bẩm sinh, Cập nhật Ung thư
+      {
+        pattern: /\b(?:conjoined\s+twins|craniopagus|separation\s+surgery)\b/i,
+        label: 'Tin y tế phẫu thuật tách cặp song sinh dính liền'
+      },
+      {
+        pattern: /\b(?:rare\s+(?:genetic\s+condition|genetic\s+disorder|disorder|condition|syndrome|fluid-buildup|disease))\b/i,
+        label: 'Tin bệnh án hiếm/hội chứng di truyền hiếm gặp'
+      },
+      {
+        pattern: /\b(?:down\s+syndrome|cornelia\s+de\s+lange|axenfeld-rieger|glaucoma|cataracts|hypoplastic\s+left\s+heart)\b/i,
+        label: 'Tin bệnh án y khoa cụ thể (Down, Cornelia, Axenfeld, Tim bẩm sinh)'
+      },
+      {
+        pattern: /\b(?:acrania|arhinia|microcephaly|hydrocephalus|spina\s+bifida|progeria)\b/i,
+        label: 'Tin dị tật bẩm sinh hiếm gặp ở trẻ sơ sinh'
+      },
+      {
+        pattern: /\b(?:battling\s+hypoplastic|battling\s+leukemia|faces\s+(?:his|her)?\s*(?:first|second|third|fourth|fifth|major)\s+(?:heart\s+)?surgery)\b/i,
+        label: 'Tin hoàn cảnh bệnh nhi đối mặt phẫu thuật tim/ung thư máu'
+      },
+      {
+        pattern: /\b(?:cancer\s+update|shares\s+(?:encouraging|hopeful)\s+cancer\s+update|promising\s+new\s+drugs)\b/i,
+        label: 'Bản tin y học cập nhật phác đồ điều trị ung thư'
+      },
+      {
+        pattern: /\b(?:undergo\s+(?:a\s+)?remarkable\s+\d+-hour\s+(?:separation\s+)?surgery|odds\s+of\s+success)\b/i,
+        label: 'Tin phẫu thuật kéo dài nhiều giờ'
+      },
+      {
+        pattern: /\b(?:needs\s+surgery\s+to\s+reduce\s+their\s+size|unusual\s+little\s+arms|bubble-like\s+eye\s+bulge)\b/i,
+        label: 'Tin dị tật cơ thể người thật'
+      },
+      {
+        pattern: /\b(?:extremely\s+rare\s+condition|diagnosed\s+with\s+rare)\b/i,
+        label: 'Tin phát hiện hội chứng cực kỳ hiếm'
+      },
+      {
+        pattern: /\b(?:congenital\s+arhinia|facial\s+difference|rare\s+condition\s+behind\s+his)\b/i,
+        label: 'Tin dị tật bẩm sinh Arhinia/khuôn mặt'
+      },
+
+      // 2.5 Thể thao & Showbiz người thật
+      {
+        pattern: /\b(?:olympic\s+gold\s+medalist|sir\s+chris\s+hoy|goalkeeper|footballer|striker|soccer\s+player|soccer\s+star)\b/i,
+        label: 'Bản tin thể thao/vận động viên thi đấu'
+      },
+      {
+        pattern: /\b(?:left\s+out\s+of\s+national\s+squad|scores?\s+hat-trick|premier\s+league|champions\s+league)\b/i,
+        label: 'Tin bảng xếp hạng/đội tuyển bóng đá'
+      },
+
+      // 2.6 Chính trị, Bầu cử, Kinh tế, Review phần mềm
+      {
+        pattern: /\b(?:breaking|breaking\s+news|live\s+updates):/i,
+        label: 'Tin giật gân phát sóng trực tiếp (Breaking news)'
+      },
+      {
+        pattern: /\b(?:election\s+results|white\s+house\s+announces|pentagon\s+says|prime\s+minister\s+announces)\b/i,
+        label: 'Tin chính trị chính phủ/bầu cử'
+      },
+      {
+        pattern: /\b(?:stock\s+market|nasdaq|dow\s+jones|quarterly\s+profit|interest\s+rate|bitcoin\s+price)\b/i,
+        label: 'Tin kinh tế thị trường tài chính chứng khoán'
+      },
+      {
+        pattern: /\b(?:patch\s+notes|firmware\s+update|camera\s+specs|discount\s+code|buyers\s+guide)\b/i,
+        label: 'Bài đánh giá công nghệ/thông số kỹ thuật'
+      },
     ];
 
-    for (const pattern of newsTitlePatterns) {
-      if (pattern.test(titleLower)) {
+    for (const rule of strictTitleDisqualifiers) {
+      if (rule.pattern.test(title)) {
         return {
           isStory: false,
-          reason: `Tiêu đề chứa từ khóa tin tức/sự kiện/thể thao (${title})`,
+          reason: `Tiêu đề thuộc thể loại "${rule.label}" (Tiêu đề: "${title}")`,
         };
       }
     }
 
-    // 4.3. Tính điểm phân loại nội dung: Story Score vs News Score
-    let storyScore = 0;
-    let newsScore = 0;
+    // 3. BỘ QUY TẮC PHỦ ĐỊNH NỘI DUNG (STRICT CONTENT DISQUALIFIERS)
+    // Đọc phần nội dung mở đầu bài viết (đặc biệt 2500 ký tự đầu tiên)
+    const contentIntro = content.substring(0, 2500);
 
-    // A. Story Signals (Đặc trưng cốt truyện, nhân vật, cảm xúc, ngôi kể)
-    // 1. Nhân vật gia đình & quan hệ đời sống (+2 điểm mỗi từ)
-    const storyCharacterKeywords = [
+    const strictContentDisqualifiers: { pattern: RegExp; label: string }[] = [
+      // 3.1 Báo cáo hiện trường của Cảnh sát / Đội cứu hộ / Cứu thương
+      {
+        pattern: /\b(?:officers\s+were\s+dispatched|emergency\s+services\s+were\s+called|paramedics\s+arrived|paramedics\s+rushed|pronounced\s+dead\s+at\s+the\s+scene)\b/i,
+        label: 'Báo cáo cảnh sát/cứu thương tại hiện trường tử vong'
+      },
+      {
+        pattern: /\b(?:coast\s+guard|search\s+and\s+rescue\s+operation|underwater\s+search\s+unit|autopsy\s+(?:report|revealed)|coroner's\s+office|medical\s+examiner)\b/i,
+        label: 'Khám nghiệm tử thi/cảnh sát tuần duyên lặn tìm kiếm'
+      },
+      {
+        pattern: /\b(?:foul\s+play\s+is\s+not\s+suspected|crime\s+stoppers|call\s+(?:911|101)|police\s+department\s+(?:reported|confirmed|said|stated)|sheriff's\s+office\s+(?:confirmed|stated))\b/i,
+        label: 'Thông báo báo chí chính thức của sở cảnh sát'
+      },
+      {
+        pattern: /\b(?:anyone\s+with\s+information\s+is\s+urged\s+to\s+contact)\b/i,
+        label: 'Kêu gọi nhân chứng cung cấp manh mối vụ án/mất tích'
+      },
+
+      // 3.2 Cáo phó, Phúng viếng, Gây quỹ tang lễ/viện phí
+      {
+        pattern: /\b(?:gofundme|gofundme\.com|fundraiser\s+organized\s+by|donations\s+can\s+be\s+made\s+to)\b/i,
+        label: 'Kêu gọi quyên góp tiền qua GoFundMe'
+      },
+      {
+        pattern: /\b(?:to\s+help\s+(?:the\s+family\s+)?cover\s+funeral\s+costs|cover\s+medical\s+bills)\b/i,
+        label: 'Kêu gọi hỗ trợ chi phí mai táng/viện phí'
+      },
+      {
+        pattern: /\b(?:is\s+survived\s+by\s+(?:his|her)|preceded\s+in\s+death\s+by|celebration\s+of\s+life\s+service|visitation\s+will\s+be\s+held|in\s+lieu\s+of\s+flowers|laid\s+to\s+rest\s+at)\b/i,
+        label: 'Nghi thức tang lễ cáo phó người qua đời'
+      },
+
+      // 3.3 Phóng sự bệnh án y khoa
+      {
+        pattern: /\b(?:hospital\s+spokesperson|intensive\s+care\s+unit|pediatric\s+surgeon|underwent\s+a\s+\d+-hour\s+surgery)\b/i,
+        label: 'Bản tin phát ngôn viên bệnh viện/phòng hồi sức tích cực ICU'
+      },
+      {
+        pattern: /\b(?:meaning\s+they\s+were\s+joined\s+at\s+the|conjoined\s+twins|craniopagus)\b/i,
+        label: 'Mô tả phẫu thuật song sinh dính liền'
+      },
+      {
+        pattern: /\b(?:promising\s+new\s+drugs?\s+show|clinical\s+trials?\s+show)\b/i,
+        label: 'Báo cáo thử nghiệm lâm sàng tân dược'
+      },
+
+      // 3.4 Quy chuẩn phong cách ký sự thông tấn
+      {
+        pattern: /^[A-Z\s]{2,20},\s*(?:Fla\.|Calif\.|N\.Y\.|Texas|Wash\.|London|Scotland|Paris)?\s*[-—]\s*/,
+        label: 'Dấu ấn tin thông tấn báo chí (Dateline style: CITY, STATE — )'
+      },
+      {
+        pattern: /\b(?:according\s+to\s+(?:police|officials|authorities|investigators|the\s+Associated\s+Press|reuters|cnn|bbc))\b/i,
+        label: 'Trích dẫn nguồn tin thông tấn báo chí quốc tế'
+      },
+    ];
+
+    for (const rule of strictContentDisqualifiers) {
+      if (rule.pattern.test(contentIntro)) {
+        return {
+          isStory: false,
+          reason: `Nội dung mở đầu chứa dấu hiệu "${rule.label}"`,
+        };
+      }
+    }
+
+    // 4. BỘ TIÊU CHÍ KHẲNG ĐỊNH CỐT TRUYỆN (POSITIVE STORY CRITERIA)
+    // Một bài viết hợp lệ BẮT BUỘC phải mang đặc trưng của Story (kể chuyện, có nhân vật, có drama/xung đột, có thoại hoặc tự sự)
+    
+    // 4.1 Cờ hiệu chương hồi (Chapter 1, Part 2...)
+    const hasChapterOrPart = /\b(?:chapter\s+\d+|part\s+\d+)\b/i.test(title) || /\b(?:chapter\s+\d+|part\s+\d+)\b/i.test(contentIntro);
+
+    // 4.2 Đại từ tự sự ngôi thứ nhất (I, my, me, we, our, myself)
+    const firstPersonMatches = contentLower.match(/\b(i|my|me|we|our|myself)\b/g) || [];
+    const firstPersonCount = firstPersonMatches.length;
+
+    // 4.3 Nhân vật quan hệ đời sống, gia đình, xã hội
+    const characterKeywords = [
       /\b(husband|wife|mother|father|daughter|son|sister|brother|mom|dad|parents)\b/g,
       /\b(grandma|grandpa|grandmother|grandfather|in-law|mother-in-law|father-in-law|daughter-in-law|son-in-law)\b/g,
       /\b(fiancé|fiancée|ex-husband|ex-wife|stepmother|stepfather|stepson|stepdaughter)\b/g,
       /\b(baby|toddler|nephew|niece|cousin|aunt|uncle|neighbor|landlord|tenant)\b/g,
-      /\b(stranger|homeless|waitress|cashier|orphan|widow|widower|nurse|doctor|sheriff|soldier|veteran)\b/g,
-      /\b(puppy|dog|kitten|cat)\b/g,
+      /\b(boss|secretary|coworker|colleague|stranger|homeless|waitress|cashier|sheriff)\b/g,
     ];
-    for (const re of storyCharacterKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) storyScore += Math.min(8, matches.length * 2);
+    let characterScore = 0;
+    for (const re of characterKeywords) {
+      const m = contentLower.match(re);
+      if (m) characterScore += m.length;
     }
 
-    // 2. Tình tiết cảm xúc & drama (+2 điểm mỗi từ)
-    const storyPlotKeywords = [
+    // 4.4 Tình tiết cảm xúc, cao trào, diễn biến drama
+    const dramaKeywords = [
       /\b(cried|whispered|screamed|gasped|shivered|trembled|sobbed|hugged|tears)\b/g,
-      /\b(heartbroken|divorce|wedding|marriage|funeral|cemetery|coffin|grave)\b/g,
-      /\b(inheritance|inherited|will and testament|secret hidden|betrayed|confessed|apologized|forgave)\b/g,
-      /\b(embarrassed|pregnant|pregnancy|adoption|adopted|dna test|starving|freezing|evicted|eviction)\b/g,
-      /\b(chapter \d+|part \d+|suddenly,|years ago,|years later,|the truth was)\b/g,
+      /\b(divorce|wedding|marriage|funeral|coffin|grave|cemetery)\b/g,
+      /\b(inheritance|inherited|will\s+and\s+testament|secret|betrayed|confessed|apologized|forgave)\b/g,
+      /\b(embarrassed|pregnant|pregnancy|adoption|adopted|dna\s+test|evicted|eviction)\b/g,
+      /\b(smiled|smugly|panicked|furious|speechless|refused|demanded|discovered)\b/g,
+      /\b(thirty\s+minutes\s+later|the\s+truth\s+was|years\s+later|suddenly,)\b/g,
     ];
-    for (const re of storyPlotKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) storyScore += Math.min(8, matches.length * 2);
+    let dramaScore = 0;
+    for (const re of dramaKeywords) {
+      const m = contentLower.match(re);
+      if (m) dramaScore += m.length;
     }
 
-    // 3. Đại từ tự sự ngôi thứ nhất (+1 điểm mỗi lần, tối đa 8 điểm)
-    const firstPersonPronouns = contentLower.match(/\b(i|my|me|we|our|myself)\b/g);
-    if (firstPersonPronouns) {
-      storyScore += Math.min(8, Math.floor(firstPersonPronouns.length / 3));
+    // 4.5 Lời thoại nhân vật trong ngoặc kép
+    const dialogueMatches = content.match(/[“"][^”"\n]{3,}[”"]/g) || [];
+    const dialogueCount = dialogueMatches.length;
+
+    // QUYẾT ĐỊNH CUỐI CÙNG VỀ THỂ LOẠI STORY:
+    // Trường hợp A: Có đánh số Part/Chapter -> Story
+    if (hasChapterOrPart && (characterScore >= 1 || dramaScore >= 1)) {
+      return { isStory: true };
     }
 
-    // 4. Lời thoại nhân vật trong ngoặc kép (+2 điểm mỗi đoạn đối thoại)
-    const dialogueCount = (content.match(/[“"][^”"\n]{4,}[”"]/g) || []).length;
-    storyScore += Math.min(10, dialogueCount * 2);
-
-    // B. News Signals (Đặc trưng báo chí, thời sự, thể thao, kinh tế)
-    // 1. Trích dẫn thông tấn báo chí (+3 điểm)
-    const newsJournalismKeywords = [
-      /\b(spokesperson|spokesman|press release|press conference|press briefing)\b/g,
-      /\b(according to reports|reuters reported|associated press|bloomberg news|cnn reported)\b/g,
-      /\b(official statement|ministry announced|authorities stated|investigators said|police department reported)\b/g,
-    ];
-    for (const re of newsJournalismKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) newsScore += matches.length * 3;
+    // Trường hợp B: Truyện tự sự ngôi thứ nhất (First-person confession / life story)
+    // Yêu cầu: Ngôi thứ nhất >= 4 lần, có nhân vật >= 2 lần, có tình tiết drama >= 2 lần
+    if (firstPersonCount >= 4 && characterScore >= 2 && dramaScore >= 2) {
+      return { isStory: true };
     }
 
-    // 2. Chính trị / Chiến sự quốc tế (+3 điểm)
-    const newsPoliticsKeywords = [
-      /\b(white house|pentagon|congressional committee|lawmakers passed|senate approved)\b/g,
-      /\b(prime minister|ambassador to|economic sanctions|bilateral summit|foreign policy|geopolitical tension)\b/g,
-    ];
-    for (const re of newsPoliticsKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) newsScore += matches.length * 3;
+    // Trường hợp C: Truyện kể có thoại nhân vật (Narrative story with dialogue)
+    // Yêu cầu: Lời thoại >= 2 đoạn, có nhân vật >= 2 lần
+    if (dialogueCount >= 2 && characterScore >= 2) {
+      return { isStory: true };
     }
 
-    // 3. Kinh tế thị trường / Chứng khoán (+3 điểm)
-    const newsFinanceKeywords = [
-      /\b(wall street|quarterly earnings|quarterly profit|revenue rose|revenue fell|shares climbed|shares dipped)\b/g,
-      /\b(federal reserve|interest rate cut|interest rate hike|inflation rate|central bank|consumer price index|stock index)\b/g,
-    ];
-    for (const re of newsFinanceKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) newsScore += matches.length * 3;
-    }
-
-    // 4. Thể thao thi đấu (+3 điểm)
-    const newsSportsKeywords = [
-      /\b(premier league|champions league|world cup|matchday|half-time|scored in the \d+|transfer fee|head coach told)\b/g,
-    ];
-    for (const re of newsSportsKeywords) {
-      const matches = contentLower.match(re);
-      if (matches) newsScore += matches.length * 3;
-    }
-
-    // C. Đánh giá và ra quyết định
-    // Nếu điểm tin tức cao và áp đảo điểm cốt truyện
-    if (newsScore >= 3 && newsScore > storyScore) {
-      return {
-        isStory: false,
-        reason: `Bài viết thuộc thể loại tin tức/thời sự (Điểm tin tức: ${newsScore} > Điểm câu chuyện: ${storyScore})`,
-      };
-    }
-
-    // Nếu bài viết không hề có bất kỳ nhân vật, lời thoại hay tình tiết cảm xúc nào của câu chuyện
-    if (storyScore < 4 && dialogueCount === 0) {
-      return {
-        isStory: false,
-        reason: `Nội dung thiếu yếu tố nhân vật và cốt truyện (Điểm câu chuyện: ${storyScore}/4, không có đối thoại)`,
-      };
-    }
-
-    return { isStory: true };
+    // Trường hợp D: Bài viết ngôi thứ ba không có thoại, không có Part/Chapter, không có tự sự
+    // Đây thường là bài viết tin tức, bài tường thuật sự kiện, hoặc văn bản tin tức chung chung -> BỎ QUA
+    return {
+      isStory: false,
+      reason: `Nội dung thiếu đặc trưng câu chuyện tự sự (Ngôi kể: ${firstPersonCount}, Nhân vật: ${characterScore}, Drama: ${dramaScore}, Lời thoại: ${dialogueCount})`,
+    };
   }
 
 
