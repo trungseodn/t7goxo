@@ -658,8 +658,9 @@ export class ZTTeamFetcherService {
       /\b(husband|wife|mother|father|daughter|son|sister|brother|mom|dad|parents)\b/g,
       /\b(grandma|grandpa|grandmother|grandfather|in-law|mother-in-law|father-in-law|daughter-in-law|son-in-law)\b/g,
       /\b(fiancé|fiancée|ex-husband|ex-wife|stepmother|stepfather|stepson|stepdaughter)\b/g,
-      /\b(baby|toddler|nephew|niece|cousin|aunt|uncle|neighbor|landlord|tenant)\b/g,
-      /\b(boss|secretary|coworker|colleague|stranger|homeless|waitress|cashier|sheriff)\b/g,
+      /\b(mistress|lover|cheater|partner|maid|housemaid|billionaire)\b/g,
+      /\b(baby|toddler|kid|kids|child|children|nephew|niece|cousin|aunt|uncle|family|relatives?)\b/g,
+      /\b(neighbor|landlord|tenant|boss|secretary|coworker|colleague|stranger|homeless|waitress|cashier|sheriff)\b/g,
     ];
     let characterScore = 0;
     for (const re of characterKeywords) {
@@ -693,18 +694,23 @@ export class ZTTeamFetcherService {
     }
 
     // Trường hợp B: Truyện tự sự ngôi thứ nhất (First-person confession / life story)
-    // Yêu cầu: Ngôi thứ nhất >= 4 lần, có nhân vật >= 2 lần, có tình tiết drama >= 2 lần
-    if (firstPersonCount >= 4 && characterScore >= 2 && dramaScore >= 2) {
+    // Yêu cầu: Ngôi thứ nhất >= 3 lần, có nhân vật hoặc tình tiết drama
+    if (firstPersonCount >= 3 && ((characterScore >= 1 && dramaScore >= 1) || dramaScore >= 2 || characterScore >= 2)) {
       return { isStory: true };
     }
 
     // Trường hợp C: Truyện kể có thoại nhân vật (Narrative story with dialogue)
-    // Yêu cầu: Lời thoại >= 2 đoạn, có nhân vật >= 2 lần
-    if (dialogueCount >= 2 && characterScore >= 2) {
+    // Yêu cầu: Lời thoại >= 1 đoạn, có nhân vật hoặc tình tiết drama
+    if (dialogueCount >= 1 && (characterScore >= 1 || dramaScore >= 1)) {
       return { isStory: true };
     }
 
-    // Trường hợp D: Bài viết ngôi thứ ba không có thoại, không có Part/Chapter, không có tự sự
+    // Trường hợp D: Truyện ngôi thứ ba giàu nhân vật và kịch tính (Third-person narrative drama)
+    if (characterScore >= 2 && dramaScore >= 2) {
+      return { isStory: true };
+    }
+
+    // Trường hợp E: Bài viết ngôi thứ ba không có thoại, không có Part/Chapter, không có tự sự
     // Đây thường là bài viết tin tức, bài tường thuật sự kiện, hoặc văn bản tin tức chung chung -> BỎ QUA
     return {
       isStory: false,
