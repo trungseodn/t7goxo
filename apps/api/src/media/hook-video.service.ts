@@ -876,7 +876,7 @@ export class ZTTeamHookVideoService {
 
         browser = await puppeteer.launch({
           headless: true,
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
         });
         const page = await browser.newPage();
         await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
@@ -952,8 +952,10 @@ export class ZTTeamHookVideoService {
         const outputVideoPath = path.join(videosDir, outputFilename);
         const duration = 10;
 
-        // Video chữ tĩnh 100% không zoom chậm, hình ảnh sắc nét, viền và chữ đứng yên vững chắc
-        const ffmpegCmd = `ffmpeg -y -loop 1 -t ${duration} -i "${framePngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[1:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.5,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.85[aout]" -map 0:v -map "[aout]" -c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
+        // Video chữ tĩnh 100% không zoom chậm, hình ảnh sắc nét, viền và chữ đứng yên vững chắc (tối ưu CPU: nice -n 15, 2 threads, preset veryfast)
+        const isLinux = process.platform === 'linux';
+        const nicePrefix = isLinux ? 'nice -n 15 ' : '';
+        const ffmpegCmd = `${nicePrefix}ffmpeg -y -threads 2 -loop 1 -t ${duration} -i "${framePngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[1:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.5,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.85[aout]" -map 0:v -map "[aout]" -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
 
         await new Promise<void>((resolve, reject) => {
           exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30 }, (error, stdout, stderr) => {
@@ -1219,7 +1221,7 @@ export class ZTTeamHookVideoService {
 
       browser = await puppeteer.launch({
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
       });
       const page = await browser.newPage();
       await page.setViewport({ width: 1080, height: 1920, deviceScaleFactor: 1 });
@@ -1290,7 +1292,9 @@ export class ZTTeamHookVideoService {
       const outputVideoPath = path.join(videosDir, outputFilename);
       const duration = 10;
 
-      const ffmpegCmd = `ffmpeg -y -loop 1 -t ${duration} -i "${sourceImagePath}" -loop 1 -t ${duration} -i "${overlayPngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[0:v]scale=1080:774:force_original_aspect_ratio=increase,crop=1080:774:(in_w-1080)/2:(in_h-774)/2,scale='1080*(1+0.035*t/${duration})':-1:eval=frame:flags=bicubic,crop=1080:774:(in_w-1080)/2:(in_h-774)/2[fg];color=c=#011114:s=1080x1920:d=${duration}[base];[base][fg]overlay=0:0[with_img];[with_img][1:v]overlay=0:0[vout];[2:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.4,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.9[aout]" -map "[vout]" -map "[aout]" -c:v libx264 -crf 18 -preset medium -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
+      const isLinux = process.platform === 'linux';
+      const nicePrefix = isLinux ? 'nice -n 15 ' : '';
+      const ffmpegCmd = `${nicePrefix}ffmpeg -y -threads 2 -loop 1 -t ${duration} -i "${sourceImagePath}" -loop 1 -t ${duration} -i "${overlayPngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[0:v]scale=1080:774:force_original_aspect_ratio=increase,crop=1080:774:(in_w-1080)/2:(in_h-774)/2,scale='1080*(1+0.035*t/${duration})':-1:eval=frame:flags=bicubic,crop=1080:774:(in_w-1080)/2:(in_h-774)/2[fg];color=c=#011114:s=1080x1920:d=${duration}[base];[base][fg]overlay=0:0[with_img];[with_img][1:v]overlay=0:0[vout];[2:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.4,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.9[aout]" -map "[vout]" -map "[aout]" -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
 
       await new Promise<void>((resolve, reject) => {
         exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30 }, (error, stdout, stderr) => {
