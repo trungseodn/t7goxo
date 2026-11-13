@@ -444,6 +444,9 @@ export class ZTTeamCrawlerService {
         }
         if (sourceBackupLocalPath && fs.existsSync(sourceBackupLocalPath)) {
           fs.copyFileSync(sourceBackupLocalPath, path.join(targetDir, 'source_original.png'));
+          if (sourceBackupLocalPath.includes('source-originals')) {
+            try { fs.unlinkSync(sourceBackupLocalPath); } catch (e) {}
+          }
         }
       } catch (copyErr: any) {
         this.logger.warn(`Failed to copy image to standard folder: ${copyErr.message}`);
@@ -455,6 +458,11 @@ export class ZTTeamCrawlerService {
       this.hookVideoService.ztteam_renderHookVideo(imgRecord.id).catch(err => {
         this.logger.error(`[Manual Store Hook Video Error] ${err.message}`);
       });
+    }
+
+    /** Đảm bảo dọn dẹp file tạm sourceBackupLocalPath nếu còn sót lại */
+    if (sourceBackupLocalPath && fs.existsSync(sourceBackupLocalPath) && sourceBackupLocalPath.includes('source-originals')) {
+      try { fs.unlinkSync(sourceBackupLocalPath); } catch (e) {}
     }
 
     /** 6. Record to crawl history for Dashboard & UI tracking */

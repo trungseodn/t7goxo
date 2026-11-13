@@ -269,6 +269,9 @@ export function ztteam_getTextStoryTheme(pageIdOrName?: string) {
 @Injectable()
 export class ZTTeamHookVideoService {
   private readonly logger = new Logger('ZTTeamHookVideoService');
+  private activeRenderingIds = new Set<string>();
+  private renderQueue: Array<() => Promise<void>> = [];
+  private isProcessingQueue = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -280,8 +283,52 @@ export class ZTTeamHookVideoService {
 
   /**
    * ZTTeam: Render video Reel 10s siêu sắc nét từ hình ảnh Hook hoặc Text Story kính mờ Frosted Glass
+   * Áp dụng hàng đợi tuần tự (Queue 1 job tại 1 thời điểm) để chống nghẽn CPU và chống trùng lặp tiến trình
    */
   async ztteam_renderHookVideo(
+    imageId: string,
+    options?: { bgmFilename?: string; forceRegenHook?: boolean; videoEngine?: string }
+  ): Promise<{ success: boolean; videoUrl?: string; error?: string }> {
+    if (this.activeRenderingIds.has(imageId)) {
+      this.logger.log(`[Video Queue] Bài viết ${imageId} đang trong tiến trình xử lý, bỏ qua request trùng lặp.`);
+      return { success: true };
+    }
+
+    return new Promise((resolve) => {
+      this.renderQueue.push(async () => {
+        this.activeRenderingIds.add(imageId);
+        try {
+          const res = await this.ztteam_executeRenderHookVideo(imageId, options);
+          resolve(res);
+        } catch (err: any) {
+          resolve({ success: false, error: err.message });
+        } finally {
+          this.activeRenderingIds.delete(imageId);
+        }
+      });
+      this.processRenderQueue();
+    });
+  }
+
+  private async processRenderQueue() {
+    if (this.isProcessingQueue) return;
+    const task = this.renderQueue.shift();
+    if (!task) return;
+    this.isProcessingQueue = true;
+    try {
+      await task();
+    } catch (e: any) {
+      this.logger.error(`Render queue task error: ${e.message}`);
+    } finally {
+      this.isProcessingQueue = false;
+      this.processRenderQueue();
+    }
+  }
+
+  /**
+   * ZTTeam: Tiến trình render thực tế 1 video
+   */
+  private async ztteam_executeRenderHookVideo(
     imageId: string,
     options?: { bgmFilename?: string; forceRegenHook?: boolean; videoEngine?: string }
   ): Promise<{ success: boolean; videoUrl?: string; error?: string }> {
@@ -302,12 +349,18 @@ export class ZTTeamHookVideoService {
       return { success: true, videoUrl: imageRecord.video_url || undefined };
     }
 
-    /** Cập nhật trạng thái đang xử lý */
+    /** Nếu bài viết đã có video hoàn chỉnh và không yêu cầu forceRegenHook thì bỏ qua */
+    if (imageRecord.video_status === 'COMPLETED' && imageRecord.video_url && !options?.forceRegenHook) {
+      this.logger.log(`Bài viết ${imageId} đã có video hoàn chỉnh (${imageRecord.video_url}), bỏ qua.`);
+      return { success: true, videoUrl: imageRecord.video_url };
+    }
+
+    /** Cập nhật trạng thái đang xử lý PROCESSING */
     await this.prisma.ztteam_images.update({
       where: { id: imageId },
-      data: { video_status: 'PENDING', error_log: null },
+      data: { video_status: 'PROCESSING', error_log: null },
     });
-    this.eventEmitter.emit('image.updated', { id: imageId, video_status: 'PENDING' });
+    this.eventEmitter.emit('image.updated', { id: imageId, video_status: 'PROCESSING' });
 
     const tempDir = path.join(ztteam_getImagesPath(imageId), 'temp_hook_render');
     if (!fs.existsSync(tempDir)) {
@@ -947,18 +1000,27 @@ export class ZTTeamHookVideoService {
           fs.mkdirSync(videosDir, { recursive: true });
         }
 
+        // Dọn dẹp video cũ nếu có của bài viết này để chống phình ổ cứng VPS
+        if (imageRecord.video_url && imageRecord.video_url.startsWith('/storage/videos/')) {
+          const oldFilename = path.basename(imageRecord.video_url);
+          const oldPath = path.join(videosDir, oldFilename);
+          if (fs.existsSync(oldPath)) {
+            try { fs.unlinkSync(oldPath); } catch (e) { }
+          }
+        }
+
         const timestamp = Date.now();
         const outputFilename = `text_story_reel_${imageId}_${timestamp}.mp4`;
         const outputVideoPath = path.join(videosDir, outputFilename);
         const duration = 10;
 
-        // Video chữ tĩnh 100% không zoom chậm, hình ảnh sắc nét, viền và chữ đứng yên vững chắc (tối ưu CPU: nice -n 15, 2 threads, preset veryfast)
+        // Video chữ tĩnh 100% không zoom chậm, hình ảnh sắc nét, viền và chữ đứng yên vững chắc (tối ưu CPU: nice -n 15, 2 threads, preset veryfast, timeout 60s)
         const isLinux = process.platform === 'linux';
         const nicePrefix = isLinux ? 'nice -n 15 ' : '';
         const ffmpegCmd = `${nicePrefix}ffmpeg -y -threads 2 -loop 1 -t ${duration} -i "${framePngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[1:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.5,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.85[aout]" -map 0:v -map "[aout]" -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
 
         await new Promise<void>((resolve, reject) => {
-          exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30 }, (error, stdout, stderr) => {
+          exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30, timeout: 60000, killSignal: 'SIGKILL' }, (error, stdout, stderr) => {
             if (error) {
               const cleanStderr = (stderr || error.message || '').trim();
               const lines = cleanStderr.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('ffmpeg version') && !l.startsWith('built with') && !l.startsWith('configuration:'));
@@ -1287,6 +1349,15 @@ export class ZTTeamHookVideoService {
         fs.mkdirSync(videosDir, { recursive: true });
       }
 
+      // Dọn dẹp video cũ nếu có của bài viết này để chống phình ổ cứng VPS
+      if (imageRecord.video_url && imageRecord.video_url.startsWith('/storage/videos/')) {
+        const oldFilename = path.basename(imageRecord.video_url);
+        const oldPath = path.join(videosDir, oldFilename);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (e) { }
+        }
+      }
+
       const timestamp = Date.now();
       const outputFilename = `hook_reel_${imageId}_${timestamp}.mp4`;
       const outputVideoPath = path.join(videosDir, outputFilename);
@@ -1297,7 +1368,7 @@ export class ZTTeamHookVideoService {
       const ffmpegCmd = `${nicePrefix}ffmpeg -y -threads 2 -loop 1 -t ${duration} -i "${sourceImagePath}" -loop 1 -t ${duration} -i "${overlayPngPath}" -t ${duration} -i "${audioPath}" -filter_complex "[0:v]scale=1080:774:force_original_aspect_ratio=increase,crop=1080:774:(in_w-1080)/2:(in_h-774)/2,scale='1080*(1+0.035*t/${duration})':-1:eval=frame:flags=bicubic,crop=1080:774:(in_w-1080)/2:(in_h-774)/2[fg];color=c=#011114:s=1080x1920:d=${duration}[base];[base][fg]overlay=0:0[with_img];[with_img][1:v]overlay=0:0[vout];[2:a]atrim=0:${duration},asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.4,afade=t=out:st=${duration - 1.5}:d=1.5,volume=0.9[aout]" -map "[vout]" -map "[aout]" -c:v libx264 -crf 18 -preset veryfast -pix_fmt yuv420p -r 30 -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 192k -t ${duration} "${outputVideoPath}"`;
 
       await new Promise<void>((resolve, reject) => {
-        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30 }, (error, stdout, stderr) => {
+        exec(ffmpegCmd, { maxBuffer: 1024 * 1024 * 30, timeout: 60000, killSignal: 'SIGKILL' }, (error, stdout, stderr) => {
           if (error) {
             const cleanStderr = (stderr || error.message || '').trim();
             const lines = cleanStderr.split('\n').map(l => l.trim()).filter(l => l.length > 0 && !l.startsWith('ffmpeg version') && !l.startsWith('built with') && !l.startsWith('configuration:'));
@@ -1326,13 +1397,6 @@ export class ZTTeamHookVideoService {
       });
 
       this.eventEmitter.emit('image.updated', updated);
-
-      /** Dọn dẹp frame tạm */
-      try {
-        if (fs.existsSync(overlayPngPath)) fs.unlinkSync(overlayPngPath);
-      } catch (e) {
-        /** Bỏ qua */
-      }
 
       return { success: true, videoUrl };
     } catch (err: any) {
@@ -1372,6 +1436,103 @@ export class ZTTeamHookVideoService {
       }
 
       return { success: false, error: ztteam_extractErrorMessage(err) };
+    } finally {
+      if (tempDir && fs.existsSync(tempDir)) {
+        try { fs.rmSync(tempDir, { recursive: true, force: true }); } catch (e) { }
+      }
+    }
+  }
+
+  /**
+   * ZTTeam: Bảo trì định kỳ ổ cứng VPS (chạy ngầm mỗi 30 phút)
+   * 1. Xoá các video rác (file .mp4 trong storage/videos không thuộc về bài viết nào trong DB)
+   * 2. Xoá các file ảnh nguồn tạm trong storage/images/source-originals cũ hơn 1 giờ
+   * 3. Xoá video của các bài đã đăng thành công lên Fanpage hơn 3 ngày trước (Facebook đã lưu trữ video)
+   * 4. Dọn sạch các thư mục temp_hook_render còn sót lại
+   */
+  async ztteam_cleanStorageMaintenance(): Promise<{ freedMb: number }> {
+    this.logger.log('[Storage Maintenance] Bắt đầu quét dọn định kỳ bộ nhớ đĩa...');
+    let totalFreedBytes = 0;
+
+    try {
+      // 1. Quét dọn video mồ côi trong storage/videos
+      const videosDir = ztteam_getVideosPath();
+      if (fs.existsSync(videosDir)) {
+        const activeImages = await this.prisma.ztteam_images.findMany({
+          where: { video_url: { not: null } },
+          select: { video_url: true },
+        });
+        const activeBasenames = new Set(
+          activeImages
+            .map(img => img.video_url ? path.basename(img.video_url) : '')
+            .filter(Boolean)
+        );
+
+        const videoFiles = fs.readdirSync(videosDir);
+        const now = Date.now();
+        for (const file of videoFiles) {
+          if (!file.endsWith('.mp4')) continue;
+          if (!activeBasenames.has(file)) {
+            const filePath = path.join(videosDir, file);
+            try {
+              const stat = fs.statSync(filePath);
+              if (now - stat.mtimeMs > 3600000) {
+                totalFreedBytes += stat.size;
+                fs.unlinkSync(filePath);
+              }
+            } catch (e) { }
+          }
+        }
+      }
+
+      // 2. Dọn source-originals cũ hơn 1 giờ
+      const sourceOrigDir = ztteam_getSourceOriginalsPath();
+      if (fs.existsSync(sourceOrigDir)) {
+        const files = fs.readdirSync(sourceOrigDir);
+        const now = Date.now();
+        for (const file of files) {
+          const filePath = path.join(sourceOrigDir, file);
+          try {
+            const stat = fs.statSync(filePath);
+            if (now - stat.mtimeMs > 3600000) {
+              totalFreedBytes += stat.size;
+              fs.unlinkSync(filePath);
+            }
+          } catch (e) { }
+        }
+      }
+
+      // 3. Xoá video của bài viết đã đăng lên Fanpage hơn 3 ngày trước
+      const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+      const postedImagesWithVideos = await this.prisma.ztteam_images.findMany({
+        where: {
+          is_posted: true,
+          video_url: { not: null },
+          updated_at: { lt: threeDaysAgo },
+        },
+        select: { id: true, video_url: true },
+        take: 200,
+      });
+
+      for (const item of postedImagesWithVideos) {
+        if (!item.video_url) continue;
+        const filename = path.basename(item.video_url);
+        const filePath = path.join(videosDir, filename);
+        if (fs.existsSync(filePath)) {
+          try {
+            const stat = fs.statSync(filePath);
+            totalFreedBytes += stat.size;
+            fs.unlinkSync(filePath);
+          } catch (e) { }
+        }
+      }
+
+      const freedMb = Number((totalFreedBytes / (1024 * 1024)).toFixed(1));
+      this.logger.log(`[Storage Maintenance] Hoàn thành bảo trì! Đã giải phóng an toàn ${freedMb} MB ổ cứng.`);
+      return { freedMb };
+    } catch (err: any) {
+      this.logger.error(`[Storage Maintenance Error] ${err.message}`);
+      return { freedMb: 0 };
     }
   }
 }

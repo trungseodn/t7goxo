@@ -25,6 +25,16 @@ export class ZTTeamRenderCron implements OnApplicationBootstrap {
     }
     this.logger.log('Application started, triggering initial render cron...');
     this.ztteam_handleCron();
+    this.ztteam_handleStorageCleanup();
+  }
+
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async ztteam_handleStorageCleanup() {
+    try {
+      await this.hookVideoService.ztteam_cleanStorageMaintenance();
+    } catch (e: any) {
+      this.logger.error(`Storage cleanup cron failed: ${e.message}`);
+    }
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
